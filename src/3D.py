@@ -1,6 +1,7 @@
 import pyxel
 import math as m
-from src.utils import Point
+import random
+import dataclasses
 
 WIDTH = 160
 HEIGHT = 120
@@ -10,6 +11,12 @@ BLUE = 1
 PURPLE = 2
 TEAL = 3
 ORANGE = 9
+
+
+@dataclasses.dataclass
+class Point:
+    x: float
+    y: float
 
 
 def argmin(a):
@@ -25,16 +32,22 @@ def pix(x, y, c):
 
 
 def draw_tri(tri):
-    x1, y1 = tri[0]
-    x2, y2 = tri[1]
-    x3, y3 = tri[2]
+    p1 = Point(*tri[0])
+    p2 = Point(*tri[1])
+    p3 = Point(*tri[2])
 
-    y_min = min(y1, y2, y3)
-    y_max = max(y1, y2, y3)
+    # you can chain things 0.o
+    if p1.x == p2.x == p3.x:
+        raise Exception("All 3 x values are equal. I can't draw that!")
+    if p1.y == p2.y == p3.y:
+        raise Exception("All 3 y values are equal. I can't draw that!")
+
+    y_min = min(p1.y, p2.y, p3.y)
+    y_max = max(p1.y, p2.y, p3.y)
 
     points_to_process = tri[:]
 
-    bottom_vertex_index = argmin([y1, y2, y3])
+    bottom_vertex_index = argmin([p1.y, p2.y, p3.y])
     bot_x, bot_y = tri[bottom_vertex_index]
     del points_to_process[bottom_vertex_index]
 
@@ -45,8 +58,8 @@ def draw_tri(tri):
 
     right_x, right_y = points_to_process[0]
 
-    x_min = min(x1, x2, x3)
-    x_tri_max = max(x1, x2, x3)
+    x_min = min(p1.x, p2.x, p3.x)
+    x_tri_max = max(p1.x, p2.x, p3.x)
 
     drawLeft = bot_x == right_x
     target_y = 0
@@ -82,9 +95,41 @@ def draw_tri(tri):
     pix(right_x, right_y, ORANGE)
 
 
+def create_test_tris(num_tris: int) -> list[tuple[int, int]]:
+    test_tris = []
+    for i in range(num_tris):
+        rand_x1 = random.randint(-WIDTH // 2, WIDTH // 2)
+        rand_x2 = random.randint(-WIDTH // 2, WIDTH // 2)
+        xmin = min(rand_x1, rand_x2)
+        xmax = max(rand_x1, rand_x2)
+        if xmin == xmax:
+            xmax += 1
+
+        rand_y1 = random.randint(-HEIGHT // 2, HEIGHT // 2)
+        rand_y2 = random.randint(-HEIGHT // 2, HEIGHT // 2)
+        ymin = min(rand_y1, rand_y2)
+        ymax = max(rand_y1, rand_y2)
+        if ymin == ymax:
+            ymax += 1
+
+        x1 = xmin
+        y1 = ymax
+        x2 = xmax
+        y2 = ymax
+        x3 = random.choice([xmax, xmin])
+        y3 = ymin
+
+        tri = [(x1, y1), (x2, y2), (x3, y3)]
+        random.shuffle(tri)
+
+        test_tris.append(tri)
+    return test_tris
+
+
 class App:
     t: float = 0
     p: Point = Point(0, 0)
+    test_tris = create_test_tris(3)
 
     def __init__(self) -> None:
         pyxel.init(WIDTH, HEIGHT, fps=FPS)
@@ -97,8 +142,8 @@ class App:
     def draw(self):
         pyxel.cls(13)
 
-        test_tris = [[(11, 11), (1, 11), (1, 1)], [(20, 60), (0, 60), (20, 20)]]
-        for tri in test_tris:
+        # test_tris = [[(11, 11), (1, 11), (1, 1)], [(20, 60), (0, 60), (20, 20)]]
+        for tri in self.test_tris:
             draw_tri(tri)
 
         # debug
