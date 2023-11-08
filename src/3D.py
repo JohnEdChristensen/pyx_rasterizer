@@ -88,7 +88,7 @@ def draw_tri(tri):
             x_min = x_min
 
         for x in range(x_min, x_max + 1):
-            pix(x, y, BLUE)
+            pix(x, y, random.randint(1, 15))
 
     pix(bot_x, bot_y, PURPLE)
     pix(left_x, left_y, TEAL)
