@@ -9,6 +9,8 @@ readme = "README.md"
 python = "^3.11"
 pyxel = "^1.9.18"
 mypy = "^1.6.1"
+pillow = "^10.1.0"
+types-pillow = "^10.1.0.0"
 
 
 [build-system]
