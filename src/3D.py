@@ -19,6 +19,9 @@ class Point:
     x: float
     y: float
 
+    def as_tuple(self):
+        return (self.x,self.y)
+
 
 @dataclasses.dataclass
 class Line:
@@ -132,8 +135,24 @@ def draw_tri(tri: list[tuple[float, float]]):
         line_l = Line(left, top)
         # Find line on the right side
         line_r = Line(top, right)
+    elif tri_type == TriType.STANDARD:
+            
+         points_sorted_vertically = sorted([p1,p2,p3],key=lambda p: p.y)
+         pBottom = points_sorted_vertically[0]
+         pMiddle = points_sorted_vertically[1]
+         pTop = points_sorted_vertically[2]
+
+         opposite_line = Line(pBottom,pTop)
+         pNew = Point(opposite_line.x(pMiddle.y),pMiddle.y)
+         topTri = [pMiddle.as_tuple(),pNew.as_tuple(),pTop.as_tuple()]
+         botTri = [pMiddle.as_tuple(),pNew.as_tuple(),pBottom.as_tuple()]
+         draw_tri(topTri)
+         draw_tri(botTri)
+         return
+
     else:
-        raise Exception("I can't draw that non up-down tris!!")
+        raise Exception("I don't know how to draw anything else")
+
 
 
     color = random.randint(0, 15)
@@ -254,7 +273,8 @@ def create_up_tris(num_tris: int) -> list[list[tuple[int, int]]]:
 class App:
     t: float = 0
     p: Point = Point(0, 0)
-    test_tris = create_down_tris(30)
+    #test_tris = create_down_tris(30)
+    test_tris = [[(-25,-25),(50,50),(5,60)]]
     ran: bool = False
 
     def __init__(self) -> None:
@@ -268,7 +288,7 @@ class App:
 
     def draw(self):
         if self.ran is False:
-            self.test_tris = create_up_tris(30)
+            #self.test_tris = create_down_tris(30)
             self.ran = True
             pyxel.cls(13)
 
