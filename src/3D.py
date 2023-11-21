@@ -18,21 +18,21 @@ class Point:
     x: float
     y: float
 
+
 @dataclasses.dataclass
 class Line:
     p1: Point
     p2: Point
-    
-    def x(self,y:float)->float:
+
+    def x(self, y: float) -> float:
         p1 = self.p1
         p2 = self.p2
-        if(p1.x == p2.x):
+        if p1.x == p2.x:
             return p1.x
 
-        slope = (p1.y-p2.y)/(p1.x-p2.x)
+        slope = (p1.y - p2.y) / (p1.x - p2.x)
         b = p2.y - (slope * p2.x)
-        return (y-b)/slope
-
+        return (y - b) / slope
 
 
 def argmin(a):
@@ -51,7 +51,7 @@ def pix(x: float, y: float, c: int):
     pyxel.pset(real_x, real_y, c)
 
 
-def draw_tri(tri: list[tuple[float,float]]):
+def draw_tri(tri: list[tuple[float, float]]):
     p1 = Point(*tri[0])
     p2 = Point(*tri[1])
     p3 = Point(*tri[2])
@@ -79,11 +79,11 @@ def draw_tri(tri: list[tuple[float,float]]):
     right = Point(*points_to_process[0])
 
     # Find line on the left side
-    line_l = Line(left,bottom)
+    line_l = Line(left, bottom)
     # Find line on the right side
-    line_r = Line(bottom,right)
-    
-    color = random.randint(0,15)
+    line_r = Line(bottom, right)
+
+    color = random.randint(0, 15)
     for y in range(m.floor(y_min), m.floor(y_max) + 1):
         # max of current scanline
         x_min = line_l.x(y)
@@ -127,7 +127,8 @@ def create_down_square_tris(num_tris: int) -> list[list[tuple[int, int]]]:
         test_tris.append(tri)
     return test_tris
 
-def create_down_tris(num_tris:int)->list[list[tuple[int,int]]]:
+
+def create_down_tris(num_tris: int) -> list[list[tuple[int, int]]]:
     test_tris = []
     for _ in range(num_tris):
         rand_x1 = random.randint(-WIDTH // 2, WIDTH // 2)
@@ -163,21 +164,27 @@ class App:
     t: float = 0
     p: Point = Point(0, 0)
     test_tris = create_down_tris(30)
+    ran: bool = False
 
     def __init__(self) -> None:
         pyxel.init(WIDTH, HEIGHT, fps=FPS)
-        pyxel.mouse(True)
+        #pyxel.mouse(True)
         pyxel.run(self.update, self.draw)
 
     def update(self):
-        ...
+        if pyxel.btn(pyxel.KEY_R):
+            self.ran = False
 
     def draw(self):
-        pyxel.cls(13)
+        if self.ran is False:
+            self.test_tris = create_down_tris(30)
+            self.ran = True
+            pyxel.cls(13)
 
-        # test_tris = [[(11, 11), (1, 11), (1, 1)], [(20, 60), (0, 60), (20, 20)]]
-        for tri in self.test_tris:
-            draw_tri(tri)
+
+            # test_tris = [[(11, 11), (1, 11), (1, 1)], [(20, 60), (0, 60), (20, 20)]]
+            for tri in self.test_tris:
+                draw_tri(tri)
 
         # debug
         # pyxel.pset(x1, y1, 12)
