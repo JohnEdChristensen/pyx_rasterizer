@@ -13,6 +13,7 @@ PURPLE = 2
 TEAL = 3
 ORANGE = 9
 
+#z_buffer: list[list[float]] = [[float("inf")]* WIDTH]*HEIGHT
 
 @dataclasses.dataclass
 class Point:
@@ -92,7 +93,7 @@ def characterize_tri(tri: list[tuple[float,float]])-> TriType:
 
 
 
-def draw_tri(tri: list[tuple[float, float]]):
+def draw_tri(tri: list[tuple[float, float]], color: int):
     p1 = Point(*tri[0])
     p2 = Point(*tri[1])
     p3 = Point(*tri[2])
@@ -103,6 +104,7 @@ def draw_tri(tri: list[tuple[float, float]]):
 
     points_to_process = tri[:]
     tri_type = characterize_tri(tri)
+
     if tri_type== TriType.DOWN:
         bottom_vertex_index = argmin([p1.y, p2.y, p3.y])
         bottom = Point(*tri[bottom_vertex_index])
@@ -146,16 +148,14 @@ def draw_tri(tri: list[tuple[float, float]]):
          pNew = Point(opposite_line.x(pMiddle.y),pMiddle.y)
          topTri = [pMiddle.as_tuple(),pNew.as_tuple(),pTop.as_tuple()]
          botTri = [pMiddle.as_tuple(),pNew.as_tuple(),pBottom.as_tuple()]
-         draw_tri(topTri)
-         draw_tri(botTri)
+         draw_tri(topTri, color)
+         draw_tri(botTri, color)
          return
 
     else:
         raise Exception("I don't know how to draw anything else")
 
 
-
-    color = random.randint(0, 15)
     for y in range(m.floor(y_min), m.floor(y_max) + 1):
         # max of current scanline
         print(tri)
@@ -286,11 +286,44 @@ def create_standard_tris(num_tris: int) -> list[list[tuple[int, int]]]:
         test_tris.append(tri)
     return test_tris
 
+
+cube_tris = [
+        [(0,0),(0,-40),(40,-20)],
+        [(0,0),(0,-40),(-40,-20)],# bottom
+        [(0,10),(40,30),(40,-20)],
+        [(0,10),(0,-40),(40,-20)], # front right
+        [(0,10),(-40,30),(-40,-20)],
+        [(0,10),(0,-40),(-40,-20)], # front left
+        [(0,0),(40,-20),(40,30)],
+        [(0,0),(0,50),(40,30)], # back right
+        [(0,0),(-40,-20),(-40,30)], 
+        [(0,0),(0,50),(-40,30)], # back left
+        [(0,50),(0,10),(40,30)],
+        [(0,10),(0,10),(-40,30)],# bottom
+        ]
+
+cube_colors = [
+        pyxel.COLOR_PINK,
+        pyxel.COLOR_PINK,
+        pyxel.COLOR_LIGHT_BLUE,
+        pyxel.COLOR_LIGHT_BLUE,
+        pyxel.COLOR_LIME,
+        pyxel.COLOR_LIME,
+        pyxel.COLOR_PURPLE,
+        pyxel.COLOR_PURPLE,
+        pyxel.COLOR_YELLOW,
+        pyxel.COLOR_YELLOW,
+        pyxel.COLOR_GRAY,
+        pyxel.COLOR_GRAY
+        ]
+
 class App:
     t: float = 0
     p: Point = Point(0, 0)
     #test_tris = create_down_tris(30)
-    test_tris = [[(-25,-25),(50,50),(5,60)]]
+    #test_tris = [[(-25,-25),(50,50),(5,60)]]
+    #test_tris = create_standard_tris(30)
+    test_tris = cube_tris
     ran: bool = False
 
     def __init__(self) -> None:
@@ -306,12 +339,12 @@ class App:
         if self.ran is False:
             #self.test_tris = create_down_tris(30)
             self.ran = True
-            pyxel.cls(13)
+            pyxel.cls(0)
 
 
             # test_tris = [[(11, 11), (1, 11), (1, 1)], [(20, 60), (0, 60), (20, 20)]]
-            for tri in self.test_tris:
-                draw_tri(tri)
+            for i,tri in enumerate(self.test_tris):
+                draw_tri(tri,cube_colors[i])
 
         # debug
         # pyxel.pset(x1, y1, 12)
