@@ -19,9 +19,10 @@ z_buffer: list[list[float]] = [[float("inf")]* WIDTH]*HEIGHT
 class Point:
     x: float
     y: float
+    z: float
 
     def as_tuple(self):
-        return (self.x,self.y)
+        return (self.x,self.y,self.z)
 
 
 @dataclasses.dataclass
@@ -49,6 +50,7 @@ def argmax(a):
 
 
 def pix(x: float, y: float, c: int):
+    print(f"{x=}\t {y=}\t {c=}")
     real_x = x + WIDTH / 2  # shift
     real_y = -y  # flip
     real_y = real_y + HEIGHT / 2  # shift
@@ -62,7 +64,7 @@ class TriType(Enum):
     HORIZONTAL_LINE = 3
     VERTICAL_LINE = 4
 
-def tris_from_verts(vertices,faces) -> list[tuple[float,float]]:
+def tris_from_verts(vertices,faces) -> list[tuple[float,float,float]]:
     tris = []
     for face in faces:
         tris.append([vertices[face[0]],vertices[face[1]],vertices[face[2]]])
@@ -71,7 +73,7 @@ def tris_from_verts(vertices,faces) -> list[tuple[float,float]]:
 
 
 
-def characterize_tri(tri: list[tuple[float,float]])-> TriType:
+def characterize_tri(tri: list[tuple[float,float,float]])-> TriType:
     p1 = Point(*tri[0])
     p2 = Point(*tri[1])
     p3 = Point(*tri[2])
@@ -101,11 +103,11 @@ def characterize_tri(tri: list[tuple[float,float]])-> TriType:
 
 
 
-def draw_tri(tri: list[tuple[float, float]], color: int):
+def draw_tri(tri: list[tuple[float, float,float]], color: int):
+
     p1 = Point(*tri[0])
     p2 = Point(*tri[1])
     p3 = Point(*tri[2])
-
 
     y_min = min(p1.y, p2.y, p3.y)
     y_max = max(p1.y, p2.y, p3.y)
@@ -153,7 +155,7 @@ def draw_tri(tri: list[tuple[float, float]], color: int):
          pTop = points_sorted_vertically[2]
 
          opposite_line = Line(pBottom,pTop)
-         pNew = Point(opposite_line.x(pMiddle.y),pMiddle.y)
+         pNew = Point(opposite_line.x(pMiddle.y),pMiddle.y,pMiddle.z) # TODO should this have a real z value?
          topTri = [pMiddle.as_tuple(),pNew.as_tuple(),pTop.as_tuple()]
          botTri = [pMiddle.as_tuple(),pNew.as_tuple(),pBottom.as_tuple()]
          draw_tri(topTri, color)
@@ -166,22 +168,26 @@ def draw_tri(tri: list[tuple[float, float]], color: int):
 
     for y in range(m.floor(y_min), m.floor(y_max) + 1):
         # max of current scanline
-        print(tri)
-        print(line_l)
-        print(line_r)
+        z = p1.z # temporarily just use first point's z TODO interpolate?
+        #print(tri)
+        #print(line_l)
+        #print(line_r)
         x_min = line_l.x(y)
         x_max = line_r.x(y)
 
         for x in range(m.floor(x_min), m.floor(x_max) + 1):
-            pix(x, y, color)
+            if z <= z_buffer[HEIGHT//2+y][WIDTH//2+x]:
+                print(f"{z=},{z_buffer[y][x]=}")
+                pix(x, y, color)
+                z_buffer[HEIGHT//2+y][WIDTH//2+x] = z
 
     #pix(bottom.x, bottom.y, PURPLE)
-    if tri_type == TriType.UP:
-        pix(top.x, top.y, PURPLE)
-    elif tri_type == TriType.DOWN:
-        pix(bottom.x, bottom.y, PURPLE)
-    pix(left.x, left.y, TEAL)
-    pix(right.x, right.y, ORANGE)
+    # if tri_type == TriType.UP:
+    #     pix(top.x, top.y, PURPLE)
+    # elif tri_type == TriType.DOWN:
+    #     pix(bottom.x, bottom.y, PURPLE)
+    # pix(left.x, left.y, TEAL)
+    # pix(right.x, right.y, ORANGE)
 
 
 def create_down_square_tris(num_tris: int) -> list[list[tuple[int, int]]]:
@@ -294,17 +300,19 @@ def create_standard_tris(num_tris: int) -> list[list[tuple[int, int]]]:
         test_tris.append(tri)
     return test_tris
 
-
-# 
+#z pos
+#back 100 
+#middle 60 
+#front 20 
 cube_verts = [
-        (40,30),
-        (0,-40),
-        (-40,-20),
-        (0,0),
-        (40,-20),
-        (0,10),
-        (-40,30),
-        (0,50),
+        (40,30,60),
+        (0,-40,20),
+        (-40,-20,60),
+        (0,0,100),
+        (40,-20,60),
+        (0,10,20),
+        (-40,30,60),
+        (0,50,100),
         ]
 
 
@@ -357,7 +365,7 @@ cube_tris = tris_from_verts(cube_verts,cube_faces)
 
 class App:
     t: float = 0
-    p: Point = Point(0, 0)
+    p: Point = Point(0, 0, 0)
     #test_tris = create_down_tris(30)
     #test_tris = [[(-25,-25),(50,50),(5,60)]]
     #test_tris = create_standard_tris(30)
@@ -384,6 +392,16 @@ class App:
             for i,tri in enumerate(self.test_tris):
                 draw_tri(tri,cube_colors[i])
 
+            for x in range(WIDTH):
+                for y in range(HEIGHT):
+                    if z_buffer[y][x]>100:
+                        pix(x,y,pyxel.COLOR_BLACK)
+                    elif z_buffer[y][x] >60:
+                        pix(x,y,pyxel.COLOR_PURPLE)
+                    elif z_buffer[y][x] >20:
+                        pix(x,y,pyxel.COLOR_PEACH)
+                    else:
+                        pix(x,y,pyxel.COLOR_RED)
         # debug
         # pyxel.pset(x1, y1, 12)
         # pyxel.pset(x2, y2, 12)
