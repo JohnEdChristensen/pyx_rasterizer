@@ -13,7 +13,7 @@ PURPLE = 2
 TEAL = 3
 ORANGE = 9
 
-#z_buffer: list[list[float]] = [[float("inf")]* WIDTH]*HEIGHT
+z_buffer: list[list[float]] = [[float("inf")]* WIDTH]*HEIGHT
 
 @dataclasses.dataclass
 class Point:
@@ -61,6 +61,14 @@ class TriType(Enum):
     STANDARD =  2
     HORIZONTAL_LINE = 3
     VERTICAL_LINE = 4
+
+def tris_from_verts(vertices,faces) -> list[tuple[float,float]]:
+    tris = []
+    for face in faces:
+        tris.append([vertices[face[0]],vertices[face[1]],vertices[face[2]]])
+    return tris
+
+
 
 
 def characterize_tri(tri: list[tuple[float,float]])-> TriType:
@@ -287,7 +295,49 @@ def create_standard_tris(num_tris: int) -> list[list[tuple[int, int]]]:
     return test_tris
 
 
-cube_tris = [
+# 
+cube_verts = [
+        (40,30),
+        (0,-40),
+        (-40,-20),
+        (0,0),
+        (40,-20),
+        (0,10),
+        (-40,30),
+        (0,50),
+        ]
+
+
+cube_faces = [
+        [1,4,3],
+        [1,2,3], # bottom 
+        [5,0,4],
+        [5,1,4], # front right
+        [5,6,2],
+        [5,1,2], # front left
+        [2,6,7],
+        [2,3,7], # back left
+        [3,7,0],
+        [3,4,0], # back right
+        [5,6,7],
+        [5,0,7], # top
+        ]
+cube_colors = [
+        pyxel.COLOR_PINK,
+        pyxel.COLOR_PINK,
+        pyxel.COLOR_LIGHT_BLUE,
+        pyxel.COLOR_LIGHT_BLUE,
+        pyxel.COLOR_LIME,
+        pyxel.COLOR_LIME,
+        pyxel.COLOR_YELLOW,
+        pyxel.COLOR_YELLOW,
+        pyxel.COLOR_PURPLE,
+        pyxel.COLOR_PURPLE,
+        pyxel.COLOR_GRAY,
+        pyxel.COLOR_GRAY
+        ]
+
+old_cube_tris = [
         [(0,0),(0,-40),(40,-20)],
         [(0,0),(0,-40),(-40,-20)],# bottom
         [(0,10),(40,30),(40,-20)],
@@ -302,20 +352,8 @@ cube_tris = [
         [(0,10),(0,10),(-40,30)],# bottom
         ]
 
-cube_colors = [
-        pyxel.COLOR_PINK,
-        pyxel.COLOR_PINK,
-        pyxel.COLOR_LIGHT_BLUE,
-        pyxel.COLOR_LIGHT_BLUE,
-        pyxel.COLOR_LIME,
-        pyxel.COLOR_LIME,
-        pyxel.COLOR_PURPLE,
-        pyxel.COLOR_PURPLE,
-        pyxel.COLOR_YELLOW,
-        pyxel.COLOR_YELLOW,
-        pyxel.COLOR_GRAY,
-        pyxel.COLOR_GRAY
-        ]
+cube_tris = tris_from_verts(cube_verts,cube_faces)
+
 
 class App:
     t: float = 0
