@@ -269,6 +269,22 @@ def create_up_tris(num_tris: int) -> list[list[tuple[int, int]]]:
         test_tris.append(tri)
     return test_tris
 
+def create_standard_tris(num_tris: int) -> list[list[tuple[int, int]]]:
+    test_tris = []
+    for _ in range(num_tris):
+        x1 = random.randint(-WIDTH // 2, WIDTH // 2)
+        x2 = random.randint(-WIDTH // 2, WIDTH // 2)
+        x3 = random.randint(-WIDTH // 2, WIDTH // 2)
+
+        y1 = random.randint(-HEIGHT // 2, HEIGHT // 2)
+        y2 = random.randint(-HEIGHT // 2, HEIGHT // 2)
+        y3 = random.randint(-HEIGHT // 2, HEIGHT // 2)
+
+        tri = [(x1, y1), (x2, y2), (x3, y3)]
+        random.shuffle(tri)
+
+        test_tris.append(tri)
+    return test_tris
 
 class App:
     t: float = 0
