@@ -70,13 +70,13 @@ class Buffer:
             for x in range(self.width):
                 for y in range(self.height):
                     if z_buffer.get(x, y) > 100:
-                        pix(x, y, pyxel.COLOR_BLACK)
+                        pyxel.pset(x, y, pyxel.COLOR_BLACK)
                     elif z_buffer.get(x, y) > 60:
-                        pix(x, y, pyxel.COLOR_PURPLE)
+                        pyxel.pset(x, y, pyxel.COLOR_PURPLE)
                     elif z_buffer.get(x, y) > 20:
-                        pix(x, y, pyxel.COLOR_PEACH)
+                        pyxel.pset(x, y, pyxel.COLOR_PEACH)
                     else:
-                        pix(x, y, pyxel.COLOR_RED)
+                        pyxel.pset(x, y, pyxel.COLOR_RED)
 
 
 pixel_buffer = Buffer(WIDTH, HEIGHT, 0)
@@ -435,6 +435,7 @@ class App:
     # test_tris = create_standard_tris(30)
     test_tris = cube_tris
     ran: bool = False
+    show_z_buffer: bool = False
 
     def __init__(self) -> None:
         pyxel.init(WIDTH, HEIGHT, fps=FPS)
@@ -443,6 +444,9 @@ class App:
 
     def update(self):
         if pyxel.btn(pyxel.KEY_R):
+            self.ran = False
+        if pyxel.btnp(pyxel.KEY_Z):
+            self.show_z_buffer = not self.show_z_buffer
             self.ran = False
 
     def draw(self):
@@ -457,6 +461,8 @@ class App:
 
             # draw what is currently in the buffer to the screen
             pixel_buffer.draw()
+            if self.show_z_buffer:
+                z_buffer.draw()
 
         # debug
         # pyxel.pset(x1, y1, 12)
