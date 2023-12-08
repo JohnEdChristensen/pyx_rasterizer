@@ -2,11 +2,8 @@ import dataclasses
 import math as m
 import random
 from enum import Enum
-from typing import TypeVar, Any
 
 import pyxel
-
-T = TypeVar("T")
 
 WIDTH = 160
 HEIGHT = 120
@@ -17,75 +14,7 @@ PURPLE = 2
 TEAL = 3
 ORANGE = 9
 
-
-@dataclasses.dataclass
-class Buffer:
-    contents: list[Any]
-    width: int
-    height: int
-
-    def __init__(self, width: int, height: int, initial_value: Any):
-        self.width = width
-        self.height = height
-        self.contents = [initial_value] * (width * height)
-
-    def get_index(self, x: int, y: int):
-        if x >= self.width or x < 0:
-            raise Exception(f"x is out of range: {x=},{y=}")
-
-        if y >= self.height or y < 0:
-            raise Exception(f"y is out of range: {x=},{y=}")
-
-        return y * self.width + x
-
-    def set(self, x: int, y: int, value: Any):
-        index = self.get_index(x, y)
-        self.contents[index] = value
-
-    def get(self, x: int, y: int) -> Any:
-        index = self.get_index(x, y)
-        return self.contents[index]
-
-    def set_cartesian(self, cartX: int, cartY: int, value: Any):
-        # may not work well, different behaviour coule happen with even/odd width/height
-        x = cartX + self.width // 2
-        y = (-1 * cartY) + self.height // 2
-        self.set(x, y, value)
-
-    def get_cartesian(self, cartX: int, cartY: int) -> Any:
-        # may not work well, different behaviour coule happen with even/odd width/height
-        x = cartX + self.width // 2
-        y = (-1 * cartY) + self.height // 2
-        print(f"get_cartesian {cartX=}, {cartY=}, {x=},{y=}, {self.width=}")
-        return self.get(x, y)
-
-    # should we find min/max and only draw those pixels
-    def draw(self):
-        if isinstance(self.contents[0], int):
-            for x in range(self.width):
-                for y in range(self.height):
-                    pyxel.pset(x, y, self.get(x, y))
-
-        if isinstance(self.contents[0], float):
-            for x in range(self.width):
-                for y in range(self.height):
-                    if z_buffer.get(x, y) > 100:
-                        pix(x, y, pyxel.COLOR_BLACK)
-                    elif z_buffer.get(x, y) > 60:
-                        pix(x, y, pyxel.COLOR_PURPLE)
-                    elif z_buffer.get(x, y) > 20:
-                        pix(x, y, pyxel.COLOR_PEACH)
-                    else:
-                        pix(x, y, pyxel.COLOR_RED)
-
-
-pixel_buffer = Buffer(WIDTH, HEIGHT, 0)
-z_buffer = Buffer(WIDTH, HEIGHT, float("inf"))
-
-
-def pix(x: int, y: int, c: int):
-    print(f"{x=}\t {y=}\t {c=}")
-    pixel_buffer.set_cartesian(x, y, c)
+z_buffer: list[list[float]] = [[float("inf")] * WIDTH] * HEIGHT
 
 
 @dataclasses.dataclass
@@ -122,6 +51,15 @@ def argmax(a):
     return max(range(len(a)), key=lambda x: a[x])
 
 
+def pix(x: float, y: float, c: int):
+    print(f"{x=}\t {y=}\t {c=}")
+    real_x = x + WIDTH / 2  # shift
+    real_y = -y  # flip
+    real_y = real_y + HEIGHT / 2  # shift
+
+    pyxel.pset(real_x, real_y, c)
+
+
 class TriType(Enum):
     UP = 0
     DOWN = 1
@@ -130,7 +68,7 @@ class TriType(Enum):
     VERTICAL_LINE = 4
 
 
-def tris_from_verts(vertices, faces) -> list[list[tuple[float, float, float]]]:
+def tris_from_verts(vertices, faces) -> list[tuple[float, float, float]]:
     tris = []
     for face in faces:
         tris.append([vertices[face[0]], vertices[face[1]], vertices[face[2]]])
@@ -237,10 +175,10 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
         x_max = line_r.x(y)
 
         for x in range(m.floor(x_min), m.floor(x_max) + 1):
-            if z <= z_buffer.get_cartesian(x, y):
-                # print(f"{z=},{z_buffer[y][x]=}")
+            if z <= z_buffer[HEIGHT // 2 + y][WIDTH // 2 + x]:
+                print(f"{z=},{z_buffer[y][x]=}")
                 pix(x, y, color)
-                z_buffer.set_cartesian(x, y, z)
+                z_buffer[HEIGHT // 2 + y][WIDTH // 2 + x] = z
 
     # pix(bottom.x, bottom.y, PURPLE)
     # if tri_type == TriType.UP:
@@ -455,9 +393,16 @@ class App:
             for i, tri in enumerate(self.test_tris):
                 draw_tri(tri, cube_colors[i])
 
-            # draw what is currently in the buffer to the screen
-            pixel_buffer.draw()
-
+            for x in range(WIDTH):
+                for y in range(HEIGHT):
+                    if z_buffer[y][x] > 100:
+                        pix(x, y, pyxel.COLOR_BLACK)
+                    elif z_buffer[y][x] > 60:
+                        pix(x, y, pyxel.COLOR_PURPLE)
+                    elif z_buffer[y][x] > 20:
+                        pix(x, y, pyxel.COLOR_PEACH)
+                    else:
+                        pix(x, y, pyxel.COLOR_RED)
         # debug
         # pyxel.pset(x1, y1, 12)
         # pyxel.pset(x2, y2, 12)
