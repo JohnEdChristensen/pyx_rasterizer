@@ -3,6 +3,7 @@ import math as m
 import random
 from enum import Enum
 from typing import TypeVar, Any
+import time
 
 import pyxel
 
@@ -56,7 +57,7 @@ class Buffer:
         # may not work well, different behaviour coule happen with even/odd width/height
         x = cartX + self.width // 2
         y = (-1 * cartY) + self.height // 2
-        print(f"get_cartesian {cartX=}, {cartY=}, {x=},{y=}, {self.width=}")
+        # print(f"get_cartesian {cartX=}, {cartY=}, {x=},{y=}, {self.width=}")
         return self.get(x, y)
 
     # should we find min/max and only draw those pixels
@@ -69,22 +70,20 @@ class Buffer:
         if isinstance(self.contents[0], float):
             for x in range(self.width):
                 for y in range(self.height):
-                    if z_buffer.get(x, y) > 100:
-                        pyxel.pset(x, y, pyxel.COLOR_BLACK)
-                    elif z_buffer.get(x, y) > 60:
-                        pyxel.pset(x, y, pyxel.COLOR_PURPLE)
-                    elif z_buffer.get(x, y) > 20:
-                        pyxel.pset(x, y, pyxel.COLOR_PEACH)
+                    z = self.get(x, y)
+                    if z == float("inf"):
+                        color = 0
                     else:
-                        pyxel.pset(x, y, pyxel.COLOR_RED)
+                        color = int((z * 15) // 100)
+                    pyxel.pset(x, y, color)
 
 
-pixel_buffer = Buffer(WIDTH, HEIGHT, 0)
-z_buffer = Buffer(WIDTH, HEIGHT, float("inf"))
+pixel_buffer = None
+z_buffer = None
 
 
 def pix(x: int, y: int, c: int):
-    print(f"{x=}\t {y=}\t {c=}")
+    # print(f"{x=}\t {y=}\t {c=}")
     pixel_buffer.set_cartesian(x, y, c)
 
 
@@ -96,6 +95,15 @@ class Point:
 
     def as_tuple(self):
         return (self.x, self.y, self.z)
+
+    def __sub__(self, other):
+        deltaX = self.x - other.x
+        deltaY = self.y - other.y
+        deltaZ = self.z - other.z
+        return Point(deltaX, deltaY, deltaZ)
+
+    def length(self):
+        return m.sqrt(self.x**2 + self.y**2 + self.z**2)
 
 
 @dataclasses.dataclass
@@ -165,6 +173,22 @@ def characterize_tri(tri: list[tuple[float, float, float]]) -> TriType:
         return TriType.DOWN
 
 
+def z_estimate(p1: Point, p2: Point, p3: Point, pUnkown: Point) -> float:
+    deltaP1 = p1 - pUnkown
+    distanceP1 = deltaP1.length()
+
+    deltaP2 = p2 - pUnkown
+    distanceP2 = deltaP2.length()
+
+    deltaP3 = p3 - pUnkown
+    distanceP3 = deltaP3.length()
+
+    closestPointIndex = argmin([distanceP1, distanceP2, distanceP3])
+    closestPoint = [p1, p2, p3][closestPointIndex]
+
+    return closestPoint.z
+
+
 def draw_tri(tri: list[tuple[float, float, float]], color: int):
     p1 = Point(*tri[0])
     p2 = Point(*tri[1])
@@ -229,7 +253,7 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
 
     for y in range(m.floor(y_min), m.floor(y_max) + 1):
         # max of current scanline
-        z = p1.z  # temporarily just use first point's z TODO interpolate?
+        # z = triangle_lerp()
         # print(tri)
         # print(line_l)
         # print(line_r)
@@ -237,10 +261,12 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
         x_max = line_r.x(y)
 
         for x in range(m.floor(x_min), m.floor(x_max) + 1):
+            z = z_estimate(p1, p2, p3, Point(x, y, 0))
             if z <= z_buffer.get_cartesian(x, y):
                 # print(f"{z=},{z_buffer[y][x]=}")
                 pix(x, y, color)
                 z_buffer.set_cartesian(x, y, z)
+    print(set(z_buffer.contents))
 
     # pix(bottom.x, bottom.y, PURPLE)
     # if tri_type == TriType.UP:
@@ -448,21 +474,35 @@ class App:
         if pyxel.btnp(pyxel.KEY_Z):
             self.show_z_buffer = not self.show_z_buffer
             self.ran = False
+        if pyxel.btnp(pyxel.KEY_S):
+            pyxel.quit()
 
     def draw(self):
+        global pixel_buffer, z_buffer
         if self.ran is False:
             # self.test_tris = create_down_tris(30)
-            self.ran = True
+            # self.ran = True
             pyxel.cls(0)
 
+            pixel_buffer = Buffer(WIDTH, HEIGHT, 0)
+            z_buffer = Buffer(WIDTH, HEIGHT, float("inf"))
+
+            anim_count = pyxel.frame_count // 10 % len(cube_tris) + 1
+
+            partialTris = cube_tris[0:anim_count]
             # test_tris = [[(11, 11), (1, 11), (1, 1)], [(20, 60), (0, 60), (20, 20)]]
-            for i, tri in enumerate(self.test_tris):
+            for i, tri in enumerate(partialTris):
                 draw_tri(tri, cube_colors[i])
 
             # draw what is currently in the buffer to the screen
             pixel_buffer.draw()
             if self.show_z_buffer:
+                print(set(z_buffer.contents))
                 z_buffer.draw()
+
+            if anim_count == len(cube_tris):
+                pyxel.text(0, 0, "Done drawing, press r to redraw", pyxel.COLOR_WHITE)
+                self.ran = True
 
         # debug
         # pyxel.pset(x1, y1, 12)
