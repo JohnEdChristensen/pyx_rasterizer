@@ -9,6 +9,8 @@ import pyxel
 
 T = TypeVar("T")
 
+vert = tuple[float,float,float]
+
 WIDTH = 160
 HEIGHT = 120
 FPS = 15
@@ -78,13 +80,6 @@ class Buffer:
                     pyxel.pset(x, y, color)
 
 
-pixel_buffer = None
-z_buffer = None
-
-
-def pix(x: int, y: int, c: int):
-    # print(f"{x=}\t {y=}\t {c=}")
-    pixel_buffer.set_cartesian(x, y, c)
 
 
 @dataclasses.dataclass
@@ -143,6 +138,27 @@ def tris_from_verts(vertices, faces) -> list[list[tuple[float, float, float]]]:
     for face in faces:
         tris.append([vertices[face[0]], vertices[face[1]], vertices[face[2]]])
     return tris
+
+def transform_verts(verts: list[vert]):
+    transform = [[1,0,0],
+                 [0,1,0],
+                 [0,0,1]]
+
+    new_verts = []
+    for e in verts:
+        x,y,z = e
+        frame = pyxel.frame_count 
+        x += 10 * m.sin(frame/10)
+        new_verts.append((x,y,z))
+    # print("old",verts) 
+    # print("new",new_verts) 
+    return new_verts
+
+
+
+    
+                
+
 
 
 def characterize_tri(tri: list[tuple[float, float, float]]) -> TriType:
@@ -264,9 +280,9 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
             z = z_estimate(p1, p2, p3, Point(x, y, 0))
             if z <= z_buffer.get_cartesian(x, y):
                 # print(f"{z=},{z_buffer[y][x]=}")
-                pix(x, y, color)
+                pixel_buffer.set_cartesian(x, y, color)
                 z_buffer.set_cartesian(x, y, z)
-    print(set(z_buffer.contents))
+    #print(set(z_buffer.contents))
 
     # pix(bottom.x, bottom.y, PURPLE)
     # if tri_type == TriType.UP:
@@ -394,7 +410,7 @@ def create_standard_tris(num_tris: int) -> list[list[tuple[int, int]]]:
 # back 100
 # middle 60
 # front 20
-cube_verts = [
+cube_verts: list[vert] = [
     (40, 30, 60),
     (0, -40, 20),
     (-40, -20, 60),
@@ -435,22 +451,27 @@ cube_colors = [
     pyxel.COLOR_GRAY,
 ]
 
-old_cube_tris = [
-    [(0, 0), (0, -40), (40, -20)],
-    [(0, 0), (0, -40), (-40, -20)],  # bottom
-    [(0, 10), (40, 30), (40, -20)],
-    [(0, 10), (0, -40), (40, -20)],  # front right
-    [(0, 10), (-40, 30), (-40, -20)],
-    [(0, 10), (0, -40), (-40, -20)],  # front left
-    [(0, 0), (40, -20), (40, 30)],
-    [(0, 0), (0, 50), (40, 30)],  # back right
-    [(0, 0), (-40, -20), (-40, 30)],
-    [(0, 0), (0, 50), (-40, 30)],  # back left
-    [(0, 50), (0, 10), (40, 30)],
-    [(0, 10), (0, 10), (-40, 30)],  # bottom
-]
+# old_cube_tris = [
+#     [(0, 0), (0, -40), (40, -20)],
+#     [(0, 0), (0, -40), (-40, -20)],  # bottom
+#     [(0, 10), (40, 30), (40, -20)],
+#     [(0, 10), (0, -40), (40, -20)],  # front right
+#     [(0, 10), (-40, 30), (-40, -20)],
+#     [(0, 10), (0, -40), (-40, -20)],  # front left
+#     [(0, 0), (40, -20), (40, 30)],
+#     [(0, 0), (0, 50), (40, 30)],  # back right
+#     [(0, 0), (-40, -20), (-40, 30)],
+#     [(0, 0), (0, 50), (-40, 30)],  # back left
+#     [(0, 50), (0, 10), (40, 30)],
+#     [(0, 10), (0, 10), (-40, 30)],  # bottom
+# ]
 
-cube_tris = tris_from_verts(cube_verts, cube_faces)
+
+
+
+
+pixel_buffer = None
+z_buffer = None
 
 
 class App:
@@ -459,9 +480,12 @@ class App:
     # test_tris = create_down_tris(30)
     # test_tris = [[(-25,-25),(50,50),(5,60)]]
     # test_tris = create_standard_tris(30)
-    test_tris = cube_tris
     ran: bool = False
     show_z_buffer: bool = False
+    animate_construction: bool = False
+    cube_verts = cube_verts    
+    transformed_verts = []
+    render_tris = tris_from_verts(cube_verts, cube_faces)    
 
     def __init__(self) -> None:
         pyxel.init(WIDTH, HEIGHT, fps=FPS)
@@ -471,11 +495,16 @@ class App:
     def update(self):
         if pyxel.btn(pyxel.KEY_R):
             self.ran = False
+        if pyxel.btnp(pyxel.KEY_D):
+            self.animate_construction = not self.animate_construction
         if pyxel.btnp(pyxel.KEY_Z):
             self.show_z_buffer = not self.show_z_buffer
             self.ran = False
         if pyxel.btnp(pyxel.KEY_S):
             pyxel.quit()
+
+        self.transformed_verts = transform_verts(self.cube_verts)
+        self.render_tris = tris_from_verts(self.transformed_verts, cube_faces)    
 
     def draw(self):
         global pixel_buffer, z_buffer
@@ -487,27 +516,31 @@ class App:
             pixel_buffer = Buffer(WIDTH, HEIGHT, 0)
             z_buffer = Buffer(WIDTH, HEIGHT, float("inf"))
 
-            anim_count = pyxel.frame_count // 10 % len(cube_tris) + 1
+            anim_count = pyxel.frame_count // 10 % len(self.render_tris) + 1
+            
+            if self.animate_construction:
+                # only render a subset
+                partialTris = self.render_tris[0:anim_count]
+            else:
+                partialTris = self.render_tris
+                
 
-            partialTris = cube_tris[0:anim_count]
             # test_tris = [[(11, 11), (1, 11), (1, 1)], [(20, 60), (0, 60), (20, 20)]]
             for i, tri in enumerate(partialTris):
+                print(tri)
                 draw_tri(tri, cube_colors[i])
 
             # draw what is currently in the buffer to the screen
             pixel_buffer.draw()
             if self.show_z_buffer:
-                print(set(z_buffer.contents))
+                #print(set(z_buffer.contents))
                 z_buffer.draw()
-
-            if anim_count == len(cube_tris):
+    
+            
+            if self.animate_construction and anim_count == len(self.render_tris):
                 pyxel.text(0, 0, "Done drawing, press r to redraw", pyxel.COLOR_WHITE)
                 self.ran = True
 
-        # debug
-        # pyxel.pset(x1, y1, 12)
-        # pyxel.pset(x2, y2, 12)
-        # pyxel.pset(x3, y3, 12)
 
 
 App()
