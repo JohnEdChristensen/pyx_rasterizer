@@ -3,7 +3,6 @@ import math as m
 import random
 from enum import Enum
 from typing import TypeVar, Any
-import time
 
 import pyxel
 
@@ -139,25 +138,31 @@ def tris_from_verts(vertices, faces) -> list[list[tuple[float, float, float]]]:
         tris.append([vertices[face[0]], vertices[face[1]], vertices[face[2]]])
     return tris
 
-def transform_verts(verts: list[vert]):
-    transform = [[1,0,0],
-                 [0,1,0],
-                 [0,0,1]]
+def transform_verts(verts: list[vert],transform:list[list[float]]):
+    new_verts = verts[:]
+    for i,v in enumerate(verts):
+        augmented_v = (*v,1)
 
-    new_verts = []
-    for e in verts:
-        x,y,z = e
-        frame = pyxel.frame_count 
-        x += 10 * m.sin(frame/10)
-        new_verts.append((x,y,z))
-    # print("old",verts) 
-    # print("new",new_verts) 
-    return new_verts
+        xp = dot(augmented_v,transform[0])
+        yp = dot(augmented_v,transform[1])
+        zp = dot(augmented_v,transform[2])
+        wp = dot(augmented_v,transform[3])
+        new_verts[i] =  (xp,yp,zp)
+        print("old",verts)
+        print("new",new_verts)
+    return new_verts 
+
+    # for e in verts:
+    #     x,y,z = e
+    #     frame = pyxel.frame_count 
+    #     x += 10 * m.sin(frame/10)
+    #     new_verts.append((x,y,z))
 
 
-
-    
-                
+def dot(v1,v2):
+    elementwise = [a*b for a,b in zip(v1, v2)]
+    return sum(elementwise)
+     
 
 
 
@@ -466,20 +471,44 @@ cube_colors = [
 #     [(0, 10), (0, 10), (-40, 30)],  # bottom
 # ]
 
-
-
-
+# test_tris = [[(11, 11), (1, 11), (1, 1)], [(20, 60), (0, 60), (20, 20)]]
+# test_tris = create_down_tris(30)
+# test_tris = [[(-25,-25),(50,50),(5,60)]]
+# test_tris = create_standard_tris(30)
 
 pixel_buffer = None
 z_buffer = None
+
+identity = [[1.0,0.0,0.0,0.0],
+            [0.0,1.0,0.0,0.0],
+            [0.0,0.0,1.0,0.0],
+            [0.0,0.0,0.0,1.0]
+            ]
+rot90z = [[0.0,1.0,0.0,0.0],
+         [-1.0,0.0,0.0,0.0],
+         [0.0,0.0,1.0,0.0],
+         [0.0,0.0,0.0,1.0]
+         ]
+
+rot90x = [[1.0,0.0,0.0,0.0],
+          [0.0,0.0,1.0,0.0],
+          [0.0,-1.0,0.0,0.0],
+          [0.0,0.0,0.0,1.0]
+          ]
+
+def createTranslation(x,y,z):
+    return [[1.0,0.0,0.0,x],
+            [0.0,1.0,0.0,y],
+            [0.0,0.0,1.0,z],
+            [0.0,0.0,0.0,1.0]
+            ]
+
+transform =  rot90x
 
 
 class App:
     t: float = 0
     p: Point = Point(0, 0, 0)
-    # test_tris = create_down_tris(30)
-    # test_tris = [[(-25,-25),(50,50),(5,60)]]
-    # test_tris = create_standard_tris(30)
     ran: bool = False
     show_z_buffer: bool = False
     animate_construction: bool = False
@@ -502,14 +531,15 @@ class App:
             self.ran = False
         if pyxel.btnp(pyxel.KEY_S):
             pyxel.quit()
-
-        self.transformed_verts = transform_verts(self.cube_verts)
+        
+        self.transformed_verts = transform_verts(self.cube_verts,createTranslation(0,0,-60))
+        self.transformed_verts = transform_verts(self.transformed_verts,transform)
+        self.transformed_verts = transform_verts(self.transformed_verts,createTranslation(0,0,+60))
         self.render_tris = tris_from_verts(self.transformed_verts, cube_faces)    
 
     def draw(self):
         global pixel_buffer, z_buffer
         if self.ran is False:
-            # self.test_tris = create_down_tris(30)
             # self.ran = True
             pyxel.cls(0)
 
@@ -525,9 +555,7 @@ class App:
                 partialTris = self.render_tris
                 
 
-            # test_tris = [[(11, 11), (1, 11), (1, 1)], [(20, 60), (0, 60), (20, 20)]]
             for i, tri in enumerate(partialTris):
-                print(tri)
                 draw_tri(tri, cube_colors[i])
 
             # draw what is currently in the buffer to the screen
