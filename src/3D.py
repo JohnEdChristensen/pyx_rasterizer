@@ -33,9 +33,11 @@ class Buffer:
 
     def get_index(self, x: int, y: int):
         if x >= self.width or x < 0:
+            print(f"x is out of range: {x=},{y=}")
             raise Exception(f"x is out of range: {x=},{y=}")
 
         if y >= self.height or y < 0:
+            print(f"x is out of range: {x=},{y=}")
             raise Exception(f"y is out of range: {x=},{y=}")
 
         return y * self.width + x
@@ -45,7 +47,10 @@ class Buffer:
         self.contents[index] = value
 
     def get(self, x: int, y: int) -> Any:
-        index = self.get_index(x, y)
+        try:
+            index = self.get_index(x, y)
+        except:
+          return 0  
         return self.contents[index]
 
     def set_cartesian(self, cartX: int, cartY: int, value: Any):
@@ -172,9 +177,11 @@ def characterize_tri(tri: list[tuple[float, float, float]]) -> TriType:
     p3 = Point(*tri[2])
     # you can chain things 0.o
     if p1.x == p2.x == p3.x:
-        raise Exception("All 3 x values are equal. I can't draw that!")
+        print("All 3 x values are equal. I can't draw that!")
+        #raise Exception("All 3 x values are equal. I can't draw that!")
     if p1.y == p2.y == p3.y:
-        raise Exception("All 3 y values are equal. I can't draw that!")
+        print("All 3 y values are equal. I can't draw that!")
+        #raise Exception("All 3 y values are equal. I can't draw that!")
 
     if p1.y == p2.y:
         pOffLine = p3
@@ -495,6 +502,14 @@ rot90x = [[1.0,0.0,0.0,0.0],
           [0.0,-1.0,0.0,0.0],
           [0.0,0.0,0.0,1.0]
           ]
+def createRotationZ(angle):
+    return    [[1.0,0.0,0.0,0.0],
+              [0.0,m.cos(angle),m.sin(angle),0.0],
+              [0.0,-m.sin(angle),m.cos(angle),0.0],
+              [0.0,0.0,0.0,1.0]
+              ]
+
+
 
 def createTranslation(x,y,z):
     return [[1.0,0.0,0.0,x],
@@ -533,7 +548,7 @@ class App:
             pyxel.quit()
         
         self.transformed_verts = transform_verts(self.cube_verts,createTranslation(0,0,-60))
-        self.transformed_verts = transform_verts(self.transformed_verts,transform)
+        self.transformed_verts = transform_verts(self.transformed_verts,createRotationZ(m.pi/32*pyxel.frame_count))
         self.transformed_verts = transform_verts(self.transformed_verts,createTranslation(0,0,+60))
         self.render_tris = tris_from_verts(self.transformed_verts, cube_faces)    
 
