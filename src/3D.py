@@ -80,7 +80,7 @@ class Buffer:
                     if z == float("inf"):
                         color = 0
                     else:
-                        color = int((z * 15) // 100)
+                        color = int((z % 15))
                     pyxel.pset(x, y, color)
 
 
@@ -91,6 +91,9 @@ class Point:
     x: float
     y: float
     z: float
+    
+    def __repr__(self):
+        return(f" x  = {self.x:10.4f} y = {self.y:10.4f} z = {self.z=:10.4f}")
 
     def as_tuple(self):
         return (self.x, self.y, self.z)
@@ -103,6 +106,7 @@ class Point:
 
     def length(self):
         return m.sqrt(self.x**2 + self.y**2 + self.z**2)
+    
 
 
 @dataclasses.dataclass
@@ -153,8 +157,8 @@ def transform_verts(verts: list[vert],transform:list[list[float]]):
         zp = dot(augmented_v,transform[2])
         wp = dot(augmented_v,transform[3])
         new_verts[i] =  (xp,yp,zp)
-        print("old",verts)
-        print("new",new_verts)
+        #print("old",verts)
+        #print("new",new_verts)
     return new_verts 
 
     # for e in verts:
@@ -210,11 +214,25 @@ def z_estimate(p1: Point, p2: Point, p3: Point, pUnkown: Point) -> float:
 
     deltaP3 = p3 - pUnkown
     distanceP3 = deltaP3.length()
-
+    
     closestPointIndex = argmin([distanceP1, distanceP2, distanceP3])
     closestPoint = [p1, p2, p3][closestPointIndex]
+    
 
-    return closestPoint.z
+    w1 =(( (p2.y-p3.y)*(pUnkown.x-p3.x) + (p3.x - p2.x ) *(pUnkown.y - p3.y))/
+         ( (p2.y-p3.y)*(p1.x-p3.x)      + (p3.x - p2.x ) *(p1.y - p3.y)))
+
+    w2 =(( (p3.y-p1.y)*(pUnkown.x-p3.x) + (p1.x - p3.x ) *(pUnkown.y - p3.y))/
+         ( (p2.y-p3.y)*(p1.x-p3.x)      + (p3.x - p2.x ) *(p1.y - p3.y)))
+    w3 = 1 - w1 - w2
+    z_weighted_average = (p1.z*w1 + 
+                          p2.z*w2 +
+                          p3.z*w3) 
+    print(f"{p1=} \n{p2=} \n{p3=} \n{pUnkown=}")
+    print(f"{w1=:10.3f} {w2=:10.3f} {w3=:10.3f} {z_weighted_average=:10.3f}")
+
+    #return closestPoint.z
+    return z_weighted_average
 
 
 def draw_tri(tri: list[tuple[float, float, float]], color: int):
@@ -289,7 +307,8 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
         x_max = line_r.x(y)
 
         for x in range(m.floor(x_min), m.floor(x_max) + 1):
-            z = z_estimate(p1, p2, p3, Point(x, y, 0))
+
+            z = z_estimate(p1, p2, p3, Point(x, y, 0.0))
             if z <= z_buffer.get_cartesian(x, y):
                 # print(f"{z=},{z_buffer[y][x]=}")
                 pixel_buffer.set_cartesian(x, y, color)
@@ -483,8 +502,6 @@ cube_colors = [
 # test_tris = [[(-25,-25),(50,50),(5,60)]]
 # test_tris = create_standard_tris(30)
 
-pixel_buffer = None
-z_buffer = None
 
 identity = [[1.0,0.0,0.0,0.0],
             [0.0,1.0,0.0,0.0],
@@ -507,6 +524,13 @@ def createRotationZ(angle):
               [0.0,m.cos(angle),m.sin(angle),0.0],
               [0.0,-m.sin(angle),m.cos(angle),0.0],
               [0.0,0.0,0.0,1.0]
+              ]
+
+def createRotationY(angle):
+    return    [[m.cos(angle),0.0,m.sin(angle),0.0],
+            [0.0,1.0,0.0,0.0],
+            [-m.sin(angle),0.0,m.cos(angle),0.0],
+            [0.0,0.0,0.0,1.0]
               ]
 
 
@@ -548,7 +572,7 @@ class App:
             pyxel.quit()
         
         self.transformed_verts = transform_verts(self.cube_verts,createTranslation(0,0,-60))
-        self.transformed_verts = transform_verts(self.transformed_verts,createRotationZ(m.pi/32*pyxel.frame_count))
+        self.transformed_verts = transform_verts(self.transformed_verts,createRotationZ(m.pi/50*pyxel.frame_count))
         self.transformed_verts = transform_verts(self.transformed_verts,createTranslation(0,0,+60))
         self.render_tris = tris_from_verts(self.transformed_verts, cube_faces)    
 
