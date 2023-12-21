@@ -4,6 +4,7 @@ import random
 from enum import Enum
 from typing import TypeVar, Any
 import traceback
+import copy
 
 import pyxel
 
@@ -128,8 +129,6 @@ class Line:
 
         slope = (p1.y - p2.y) / (p1.x - p2.x)
         b = p2.y - (slope * p2.x)
-        print(f"{b=}")
-        print(f"{slope=}")
         return (y - b) / slope
 
 
@@ -165,8 +164,6 @@ def transform_verts(verts: list[vert],transform:list[list[float]]):
         zp = dot(augmented_v,transform[2])
         wp = dot(augmented_v,transform[3])
         new_verts[i] =  (xp,yp,zp)
-        #print("old",verts)
-        #print("new",new_verts)
     return new_verts 
 
     # for e in verts:
@@ -213,8 +210,7 @@ def characterize_tri(tri: list[tuple[float, float, float]]) -> TriType:
     else:
         return TriType.DOWN
 
-
-def z_estimate(p1: Point, p2: Point, p3: Point, pUnkown: Point) -> float:
+def z_vornoi_estimate(p1: Point, p2: Point, p3: Point, pUnkown: Point) -> float:
     deltaP1 = p1 - pUnkown
     distanceP1 = deltaP1.length()
 
@@ -226,21 +222,20 @@ def z_estimate(p1: Point, p2: Point, p3: Point, pUnkown: Point) -> float:
 
     closestPointIndex = argmin([distanceP1, distanceP2, distanceP3])
     closestPoint = [p1, p2, p3][closestPointIndex]
+    return closestPoint.z
 
 
+def z_estimate(p1: Point, p2: Point, p3: Point, pUnkown: Point) -> float:
     w1 =(( (p2.y-p3.y)*(pUnkown.x-p3.x) + (p3.x - p2.x ) *(pUnkown.y - p3.y))/
         ( (p2.y-p3.y)*(p1.x-p3.x)      + (p3.x - p2.x ) *(p1.y - p3.y)))
-
     w2 =(( (p3.y-p1.y)*(pUnkown.x-p3.x) + (p1.x - p3.x ) *(pUnkown.y - p3.y))/
         ( (p2.y-p3.y)*(p1.x-p3.x)      + (p3.x - p2.x ) *(p1.y - p3.y)))
     w3 = 1 - w1 - w2
+
     z_weighted_average = (p1.z*w1 + 
         p2.z*w2 +
         p3.z*w3) 
-    #print(f"{p1=} \n{p2=} \n{p3=} \n{pUnkown=}")
-    #print(f"{w1=:10.3f} {w2=:10.3f} {w3=:10.3f} {z_weighted_average=:10.3f}")
 
-    #return closestPoint.z
     return z_weighted_average
 
 
@@ -262,8 +257,8 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
         print(p1,p2,p3,sep="\n")
         return
 
-    print(f"{tri_type=}")
-    print(p1,p2,p3,sep="\n")
+    #print(f"{tri_type=}")
+    #print(p1,p2,p3,sep="\n")
 
     if tri_type == TriType.DOWN:
         bottom_vertex_index = argmin([p1.y, p2.y, p3.y])
@@ -297,8 +292,6 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
         line_l = Line(left, top)
         # Find line on the right side
         line_r = Line(top, right)
-        print(f"{line_l=}")
-        print(f"{line_r=}")
 
     elif tri_type == TriType.STANDARD:
         points_sorted_vertically = sorted([p1, p2, p3], key=lambda p: p.y)
@@ -313,9 +306,7 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
         topTri = [pMiddle.as_tuple(), pNew.as_tuple(), pTop.as_tuple()]
         botTri = [pMiddle.as_tuple(), pNew.as_tuple(), pBottom.as_tuple()]
 
-        print("drawing top tri...")
         draw_tri(topTri, color)
-        print("drawing bottom tri...")
         draw_tri(botTri, color)
         return
 
@@ -323,37 +314,14 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
         raise Exception("I don't know how to draw anything else")
 
     for y in range(m.ceil(y_min), m.floor(y_max)+1):
-        # max of current scanline
-        # z = triangle_lerp()
-        # print(tri)
-        # print(line_l)
-        # print(line_r)
         x_min = line_l.x(y)
         x_max = line_r.x(y)
-        print(f"{y_min=}")
-        print(f"{y_max=}")
-        print(f"{y=}")
-        print(f"{x_min=}")
-        print(f"{x_max=}")
+
         for x in range(m.ceil(x_min), m.floor(x_max) + 1):
-            if x > 150:
-                print("hello?")
-                print(f"{line_l.p1=} {line_l.p2=}")
-                print(f"{line_r=}")
             z = z_estimate(p1, p2, p3, Point(x, y, 0.0))
             if z <= z_buffer.get_cartesian(x, y):
-                # print(f"{z=},{z_buffer[y][x]=}")
                 pixel_buffer.set_cartesian(x, y, color)
                 z_buffer.set_cartesian(x, y, z)
-    #print(set(z_buffer.contents))
-
-    # pix(bottom.x, bottom.y, PURPLE)
-    # if tri_type == TriType.UP:
-    #     pix(top.x, top.y, PURPLE)
-    # elif tri_type == TriType.DOWN:
-    #     pix(bottom.x, bottom.y, PURPLE)
-    # pix(left.x, left.y, TEAL)
-    # pix(right.x, right.y, ORANGE)
 
 
 def create_down_square_tris(num_tris: int) -> list[list[tuple[int, int]]]:
@@ -606,6 +574,7 @@ def createScale(xf,yf,zf):
             [0.0,0.0,0.0,1.0]
             ]
 
+
 transform =  rot90x
 
 
@@ -647,11 +616,30 @@ class App:
 
 
         self.transformed_verts = transform_verts(self.cube_verts,createTranslation(-0.5,-0.5,-0.5))
-        self.transformed_verts = transform_verts(self.transformed_verts,createScale(30.0,30.0,30.0)) 
+        self.transformed_verts = transform_verts(self.transformed_verts,createScale(1.0,1.0,1.0)) 
+        total_scale = 40.0
+        self.transformed_verts = transform_verts(self.transformed_verts,createScale(total_scale,total_scale,total_scale))
         self.transformed_verts = transform_verts(self.transformed_verts,createRotationZ(m.pi/50*self.frame_count+10))
         self.transformed_verts = transform_verts(self.transformed_verts,createRotationY(m.pi/50*self.frame_count+10))
-        self.transformed_verts = transform_verts(self.transformed_verts,createTranslation(0,0,200))
-        self.render_tris = tris_from_verts(self.transformed_verts, cube_faces)    
+        
+        right_cube = copy.deepcopy(self.transformed_verts)
+        left_cube = copy.deepcopy(self.transformed_verts)
+
+        #right_cube= transform_verts(right_cube,createRotationZ(m.pi/50*self.frame_count+10))
+        right_cube = transform_verts(right_cube,createRotationY(m.pi/50*self.frame_count+10))
+
+        #left_cube= transform_verts(left_cube,createRotationZ(m.pi/50*self.frame_count+10))
+
+
+
+        #translations
+        right_cube = transform_verts(right_cube,createTranslation(total_scale,0,-200))
+        left_cube = transform_verts(left_cube,createTranslation(-total_scale,0,-200))
+
+
+        render_right = tris_from_verts(right_cube, cube_faces)    
+        render_left = tris_from_verts(left_cube, cube_faces)    
+        self.render_tris = render_right + render_left
 
     def draw(self):
         global pixel_buffer, z_buffer
@@ -664,7 +652,7 @@ class App:
 
             pixel_buffer = Buffer(WIDTH, HEIGHT, 0)
             z_buffer = Buffer(WIDTH, HEIGHT, float("inf"))
-
+            
             anim_count = self.frame_count // 10 % len(self.render_tris) + 1
 
             if self.animate_construction:
@@ -674,9 +662,9 @@ class App:
                 partialTris = self.render_tris
 
 
-            for i, tri in enumerate([partialTris[0]]):
+            for i, tri in enumerate(partialTris[:]):
                 try:
-                    draw_tri(tri, cube_colors[i])
+                    draw_tri(tri, cube_colors[i%len(cube_colors)])
                 except Exception as e: 
                     print(f"couldn't draw tri: {tri=}")
                     print(f"an error occured: {e}")
