@@ -3,6 +3,7 @@ import math as m
 import random
 from enum import Enum
 from typing import TypeVar, Any
+import traceback
 
 import pyxel
 
@@ -43,13 +44,18 @@ class Buffer:
         return y * self.width + x
 
     def set(self, x: int, y: int, value: Any):
-        index = self.get_index(x, y)
-        self.contents[index] = value
+        try:
+            index = self.get_index(x, y)
+            self.contents[index] = value
+        except:
+            print(f"tried to set x or y out of range: {x=},{y=}")
 
     def get(self, x: int, y: int) -> Any:
         try:
             index = self.get_index(x, y)
-        except:
+        except():
+            print(f"tried to get x or y out of range: {x=},{y=}")
+            traceback.print_exc()
             return 0  
         return self.contents[index]
 
@@ -93,7 +99,7 @@ class Point:
     z: float
 
     def __repr__(self):
-        return(f" x  = {self.x:10.4f} y = {self.y:10.4f} z = {self.z=:10.4f}")
+        return(f" x  = {self.x:10.2f} y = {self.y:10.2f} z = {self.z:10.2f}")
 
     def as_tuple(self):
         return (self.x, self.y, self.z)
@@ -122,6 +128,8 @@ class Line:
 
         slope = (p1.y - p2.y) / (p1.x - p2.x)
         b = p2.y - (slope * p2.x)
+        print(f"{b=}")
+        print(f"{slope=}")
         return (y - b) / slope
 
 
@@ -241,11 +249,21 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
     p2 = Point(*tri[1])
     p3 = Point(*tri[2])
 
+
     y_min = min(p1.y, p2.y, p3.y)
     y_max = max(p1.y, p2.y, p3.y)
 
     points_to_process = tri[:]
-    tri_type = characterize_tri(tri)
+    try:
+        tri_type = characterize_tri(tri)
+    except:
+        print("couldn't characterize triangle to a drawable type")
+        print("unidentifiable triangle:")
+        print(p1,p2,p3,sep="\n")
+        return
+
+    print(f"{tri_type=}")
+    print(p1,p2,p3,sep="\n")
 
     if tri_type == TriType.DOWN:
         bottom_vertex_index = argmin([p1.y, p2.y, p3.y])
@@ -279,6 +297,9 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
         line_l = Line(left, top)
         # Find line on the right side
         line_r = Line(top, right)
+        print(f"{line_l=}")
+        print(f"{line_r=}")
+
     elif tri_type == TriType.STANDARD:
         points_sorted_vertically = sorted([p1, p2, p3], key=lambda p: p.y)
         pBottom = points_sorted_vertically[0]
@@ -291,14 +312,17 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
         )  # TODO should this have a real z value?
         topTri = [pMiddle.as_tuple(), pNew.as_tuple(), pTop.as_tuple()]
         botTri = [pMiddle.as_tuple(), pNew.as_tuple(), pBottom.as_tuple()]
+
+        print("drawing top tri...")
         draw_tri(topTri, color)
+        print("drawing bottom tri...")
         draw_tri(botTri, color)
         return
 
     else:
         raise Exception("I don't know how to draw anything else")
 
-    for y in range(m.floor(y_min), m.floor(y_max) + 1):
+    for y in range(m.ceil(y_min), m.floor(y_max)+1):
         # max of current scanline
         # z = triangle_lerp()
         # print(tri)
@@ -306,9 +330,16 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
         # print(line_r)
         x_min = line_l.x(y)
         x_max = line_r.x(y)
-
-        for x in range(m.floor(x_min), m.floor(x_max) + 1):
-
+        print(f"{y_min=}")
+        print(f"{y_max=}")
+        print(f"{y=}")
+        print(f"{x_min=}")
+        print(f"{x_max=}")
+        for x in range(m.ceil(x_min), m.floor(x_max) + 1):
+            if x > 150:
+                print("hello?")
+                print(f"{line_l.p1=} {line_l.p2=}")
+                print(f"{line_r=}")
             z = z_estimate(p1, p2, p3, Point(x, y, 0.0))
             if z <= z_buffer.get_cartesian(x, y):
                 # print(f"{z=},{z_buffer[y][x]=}")
@@ -587,6 +618,8 @@ class App:
     cube_verts = cube_verts    
     transformed_verts = []
     render_tris = tris_from_verts(cube_verts, cube_faces)    
+    frame_count: int = 0
+    step_through_mode: bool = False;
 
     def __init__(self) -> None:
         pyxel.init(WIDTH, HEIGHT, fps=FPS)
@@ -602,25 +635,37 @@ class App:
             self.show_z_buffer = not self.show_z_buffer
             self.ran = False
         if pyxel.btnp(pyxel.KEY_S):
+            self.step_through_mode = not self.step_through_mode
+        if pyxel.btnp(pyxel.KEY_RIGHT):
+            self.ran = False
+            self.frame_count += 1
+        if pyxel.btnp(pyxel.KEY_LEFT):
+            self.frame_count -= 1
+            self.ran = False
+        if pyxel.btnp(pyxel.KEY_Q):
             pyxel.quit()
 
 
-        self.transformed_verts = transform_verts(self.cube_verts,createScale(30.0,30.0,30.0)) 
-        self.transformed_verts = transform_verts(self.transformed_verts,createRotationZ(m.pi/50*pyxel.frame_count+10))
-        self.transformed_verts = transform_verts(self.transformed_verts,createRotationY(m.pi/50*pyxel.frame_count+10))
+        self.transformed_verts = transform_verts(self.cube_verts,createTranslation(-0.5,-0.5,-0.5))
+        self.transformed_verts = transform_verts(self.transformed_verts,createScale(30.0,30.0,30.0)) 
+        self.transformed_verts = transform_verts(self.transformed_verts,createRotationZ(m.pi/50*self.frame_count+10))
+        self.transformed_verts = transform_verts(self.transformed_verts,createRotationY(m.pi/50*self.frame_count+10))
         self.transformed_verts = transform_verts(self.transformed_verts,createTranslation(0,0,200))
         self.render_tris = tris_from_verts(self.transformed_verts, cube_faces)    
 
     def draw(self):
         global pixel_buffer, z_buffer
         if self.ran is False:
-            # self.ran = True
+            if self.step_through_mode:
+                self.ran = True
+            else:
+                self.frame_count +=1
             pyxel.cls(0)
 
             pixel_buffer = Buffer(WIDTH, HEIGHT, 0)
             z_buffer = Buffer(WIDTH, HEIGHT, float("inf"))
 
-            anim_count = pyxel.frame_count // 10 % len(self.render_tris) + 1
+            anim_count = self.frame_count // 10 % len(self.render_tris) + 1
 
             if self.animate_construction:
                 # only render a subset
@@ -629,11 +674,13 @@ class App:
                 partialTris = self.render_tris
 
 
-            for i, tri in enumerate(partialTris):
+            for i, tri in enumerate([partialTris[0]]):
                 try:
                     draw_tri(tri, cube_colors[i])
-                except: 
-                    print("couldn't draw tri: {tri=}")
+                except Exception as e: 
+                    print(f"couldn't draw tri: {tri=}")
+                    print(f"an error occured: {e}")
+                    #traceback.print_exc()
 
 
             # draw what is currently in the buffer to the screen
