@@ -2,7 +2,7 @@ import dataclasses
 import math as m
 import random
 from enum import Enum
-from typing import TypeVar, Any, Iterable, Annotated,Literal
+from typing import TypeVar, Any, Iterable, Annotated, Literal
 import itertools
 import traceback
 import copy
@@ -14,7 +14,7 @@ import pyxel
 T = TypeVar("T")
 
 DType = TypeVar("DType", bound=np.generic)
-Mat4 = Annotated[npt.NDArray[DType], Literal[4,4]]
+Mat4 = Annotated[npt.NDArray[DType], Literal[4, 4]]
 Vec3 = Annotated[npt.NDArray[DType], Literal[3]]
 Vec4 = Annotated[npt.NDArray[DType], Literal[4]]
 
@@ -27,7 +27,6 @@ BLUE = 1
 PURPLE = 2
 TEAL = 3
 ORANGE = 9
-
 
 
 @dataclasses.dataclass
@@ -62,10 +61,10 @@ class Buffer:
     def get(self, x: int, y: int) -> Any:
         try:
             index = self.get_index(x, y)
-        except():
+        except ():
             print(f"tried to get x or y out of range: {x=},{y=}")
             traceback.print_exc()
-            return 0  
+            return 0
         return self.contents[index]
 
     def set_cartesian(self, cartX: int, cartY: int, value: Any):
@@ -99,8 +98,6 @@ class Buffer:
                     pyxel.pset(x, y, color)
 
 
-
-
 @dataclasses.dataclass
 class Point:
     x: float
@@ -108,7 +105,7 @@ class Point:
     z: float
 
     def __repr__(self):
-        return(f" x  = {self.x:10.2f} y = {self.y:10.2f} z = {self.z:10.2f}")
+        return f" x  = {self.x:10.2f} y = {self.y:10.2f} z = {self.z:10.2f}"
 
     def as_tuple(self):
         return (self.x, self.y, self.z)
@@ -121,7 +118,6 @@ class Point:
 
     def length(self):
         return m.sqrt(self.x**2 + self.y**2 + self.z**2)
-
 
 
 @dataclasses.dataclass
@@ -156,55 +152,51 @@ class TriType(Enum):
     VERTICAL_LINE = 4
 
 
-def tris_from_verts(vertices:list[Vec4], faces: list[list[int]]) -> list[list[tuple[float, float, float]]]:
+def tris_from_verts(
+    vertices: list[Vec4], faces: list[list[int]]
+) -> list[list[tuple[float, float, float]]]:
     tris = []
     for face in faces:
-        tris.append([vertices[face[0]][:3], vertices[face[1]][:3], vertices[face[2]][:3]])
+        tris.append(
+            [
+                vertices[face[0]][:3],
+                vertices[face[1]][:3],
+                vertices[face[2]][:3],
+            ]
+        )
     return tris
 
-def mat_times_vec(mat:list[list[float]], vec: tuple[float,float,float,float]) ->  list[float]:
-        xp = dot(vec,mat[0])
-        yp = dot(vec,mat[1])
-        zp = dot(vec,mat[2])
-        wp = dot(vec,mat[3])
-        return [xp,yp,zp,wp]
 
-def transform_verts(verts: list[Vec4], transform:Mat4):
+def mat_times_vec(
+    mat: list[list[float]], vec: tuple[float, float, float, float]
+) -> list[float]:
+    xp = dot(vec, mat[0])
+    yp = dot(vec, mat[1])
+    zp = dot(vec, mat[2])
+    wp = dot(vec, mat[3])
+    return [xp, yp, zp, wp]
+
+
+def transform_verts(verts: list[Vec4], transform: Mat4):
     new_verts = [v.copy() for v in verts]
-    for i,v in enumerate(verts):
+    for i, v in enumerate(verts):
         new_verts[i] = transform @ v
     return new_verts
 
+
 def tranpose(mat: list[list[float]]) -> list[list[float]]:
-    #does not work :(
-    return [[mat[j][i] for i,j in itertools.product(range(4), repeat=2)]]
-    
-
-def mat_times_mat(m1:list[list[float]], m2: list[list[float]]) -> list[list[float]]:
-    output_columns = []
-    for i in range(4):
-        column = [m2[j][i] for j in range(4)]
-        column_mult = mat_times_vec(m1,column)
-        output_columns.append(column_mult)
-             
-    return tranpose(output_columns)
+    # does not work :(
+    return [[mat[j][i] for i, j in itertools.product(range(4), repeat=2)]]
 
 
-
-    # for e in verts:
-    #     x,y,z = e
-    #     frame = pyxel.frame_count 
-    #     x += 10 * m.sin(frame/10)
-    #     new_verts.append((x,y,z))
-
-
-def dot(v1:Iterable[float],v2:Iterable[float]) -> float:
-    elementwise = [a*b for a,b in zip(v1, v2)]
+def dot(v1: Iterable[float], v2: Iterable[float]) -> float:
+    elementwise = [a * b for a, b in zip(v1, v2)]
     return sum(elementwise)
 
+
 def create_test_mat(size: int):
-    mat = [list((i,i+size)) for i in range(0,size**2,size)]
-    return [float(mat[i][j]) for i,j in itertools.product(range(4), repeat=2)]
+    mat = [list((i, i + size)) for i in range(0, size**2, size)]
+    return [float(mat[i][j]) for i, j in itertools.product(range(4), repeat=2)]
 
 
 def characterize_tri(tri: list[tuple[float, float, float]]) -> TriType:
@@ -237,7 +229,10 @@ def characterize_tri(tri: list[tuple[float, float, float]]) -> TriType:
     else:
         return TriType.DOWN
 
-def z_vornoi_estimate(p1: Point, p2: Point, p3: Point, pUnkown: Point) -> float:
+
+def z_vornoi_estimate(
+    p1: Point, p2: Point, p3: Point, pUnkown: Point
+) -> float:
     deltaP1 = p1 - pUnkown
     distanceP1 = deltaP1.length()
 
@@ -253,15 +248,15 @@ def z_vornoi_estimate(p1: Point, p2: Point, p3: Point, pUnkown: Point) -> float:
 
 
 def z_estimate(p1: Point, p2: Point, p3: Point, pUnkown: Point) -> float:
-    w1 =(( (p2.y-p3.y)*(pUnkown.x-p3.x) + (p3.x - p2.x ) *(pUnkown.y - p3.y))/
-        ( (p2.y-p3.y)*(p1.x-p3.x)      + (p3.x - p2.x ) *(p1.y - p3.y)))
-    w2 =(( (p3.y-p1.y)*(pUnkown.x-p3.x) + (p1.x - p3.x ) *(pUnkown.y - p3.y))/
-        ( (p2.y-p3.y)*(p1.x-p3.x)      + (p3.x - p2.x ) *(p1.y - p3.y)))
+    w1 = (
+        (p2.y - p3.y) * (pUnkown.x - p3.x) + (p3.x - p2.x) * (pUnkown.y - p3.y)
+    ) / ((p2.y - p3.y) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.y - p3.y))
+    w2 = (
+        (p3.y - p1.y) * (pUnkown.x - p3.x) + (p1.x - p3.x) * (pUnkown.y - p3.y)
+    ) / ((p2.y - p3.y) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.y - p3.y))
     w3 = 1 - w1 - w2
 
-    z_weighted_average = (p1.z*w1 + 
-        p2.z*w2 +
-        p3.z*w3) 
+    z_weighted_average = p1.z * w1 + p2.z * w2 + p3.z * w3
 
     return z_weighted_average
 
@@ -270,7 +265,6 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
     p1 = Point(*tri[0])
     p2 = Point(*tri[1])
     p3 = Point(*tri[2])
-
 
     y_min = min(p1.y, p2.y, p3.y)
     y_max = max(p1.y, p2.y, p3.y)
@@ -281,11 +275,11 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
     except:
         print("couldn't characterize triangle to a drawable type")
         print("unidentifiable triangle:")
-        print(p1,p2,p3,sep="\n")
+        print(p1, p2, p3, sep="\n")
         return
 
-    #print(f"{tri_type=}")
-    #print(p1,p2,p3,sep="\n")
+    # print(f"{tri_type=}")
+    # print(p1,p2,p3,sep="\n")
 
     if tri_type == TriType.DOWN:
         bottom_vertex_index = argmin([p1.y, p2.y, p3.y])
@@ -340,7 +334,7 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
     else:
         raise Exception("I don't know how to draw anything else")
 
-    for y in range(m.ceil(y_min), m.floor(y_max)+1):
+    for y in range(m.ceil(y_min), m.floor(y_max) + 1):
         x_min = line_l.x(y)
         x_max = line_r.x(y)
 
@@ -468,16 +462,19 @@ def create_standard_tris(num_tris: int) -> list[list[tuple[int, int]]]:
 # back 100
 # middle 60
 # front 20
-niave_cube_verts: list[Vec4] = [np.array((*vec,1.0),dtype=float) for vec in [
-    (40, 30, 60),
-    (0, -40, 20),
-    (-40, -20, 60),
-    (0, 0, 100),
-    (40, -20, 60),
-    (0, 10, 20),
-    (-40, 30, 60),
-    (0, 50, 100),
-]]
+niave_cube_verts: list[Vec4] = [
+    np.array((*vec, 1.0), dtype=float)
+    for vec in [
+        (40, 30, 60),
+        (0, -40, 20),
+        (-40, -20, 60),
+        (0, 0, 100),
+        (40, -20, 60),
+        (0, 10, 20),
+        (-40, 30, 60),
+        (0, 50, 100),
+    ]
+]
 
 niave_cube_faces = [
     [1, 4, 3],
@@ -494,30 +491,34 @@ niave_cube_faces = [
     [5, 0, 7],  # top
 ]
 
-cube_verts: list[Vec4] = [np.array((*vec,1.0),dtype=float) for vec in [
-    (0, 0, 0),
-    (0, 0, 1),
-    (0, 1, 0),
-    (0, 1, 1),
-    (1, 0, 0),
-    (1, 0, 1),
-    (1, 1, 0),
-    (1, 1, 1),
-]]
+cube_verts: list[Vec4] = [
+    np.array((*vec, 1.0), dtype=float)
+    for vec in [
+        (0, 0, 0),
+        (0, 0, 1),
+        (0, 1, 0),
+        (0, 1, 1),
+        (1, 0, 0),
+        (1, 0, 1),
+        (1, 1, 0),
+        (1, 1, 1),
+    ]
+]
+
 
 cube_faces = [
-    [0,1,2],# x 0 face
-    [1,2,3],
-    [4,5,6],# x 1 face
-    [5,6,7],
-    [0,1,4], # y 0 face
-    [1,4,5], 
-    [2,3,6],# y 1 face
-    [3,6,7],
-    [0,2,4], # z 0 face
-    [2,4,6], 
-    [1,3,5], # z 1 face
-    [3,5,7] 
+    [0, 1, 2],  # x 0 face
+    [1, 2, 3],
+    [4, 5, 6],  # x 1 face
+    [5, 6, 7],
+    [0, 1, 4],  # y 0 face
+    [1, 4, 5],
+    [2, 3, 6],  # y 1 face
+    [3, 6, 7],
+    [0, 2, 4],  # z 0 face
+    [2, 4, 6],
+    [1, 3, 5],  # z 1 face
+    [3, 5, 7],
 ]
 
 
@@ -534,6 +535,16 @@ cube_colors = [
     pyxel.COLOR_PURPLE,
     pyxel.COLOR_GRAY,
     pyxel.COLOR_GRAY,
+]
+
+test_colors = [
+    pyxel.COLOR_PINK,
+    pyxel.COLOR_PURPLE,
+]
+
+test_faces = [
+    [0,1,2],
+    [0,2,4],
 ]
 
 # old_cube_tris = [
@@ -557,54 +568,86 @@ cube_colors = [
 # test_tris = create_standard_tris(30)
 
 
-identity = np.array([[1.0,0.0,0.0,0.0],
-            [0.0,1.0,0.0,0.0],
-            [0.0,0.0,1.0,0.0],
-            [0.0,0.0,0.0,1.0]
-            ])
-rot90z = np.array([[0.0,1.0,0.0,0.0],
-          [-1.0,0.0,0.0,0.0],
-          [0.0,0.0,1.0,0.0],
-          [0.0,0.0,0.0,1.0]
-          ])
 
-rot90x = np.array([[1.0,0.0,0.0,0.0],
-          [0.0,0.0,1.0,0.0],
-          [0.0,-1.0,0.0,0.0],
-          [0.0,0.0,0.0,1.0]
-          ])
 
 def createRotationZ(angle):
-    return    np.array([[1.0,0.0,0.0,0.0],
-               [0.0,m.cos(angle),m.sin(angle),0.0],
-               [0.0,-m.sin(angle),m.cos(angle),0.0],
-               [0.0,0.0,0.0,1.0]
-               ])
+    return np.array(
+        [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, m.cos(angle), m.sin(angle), 0.0],
+            [0.0, -m.sin(angle), m.cos(angle), 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+        dtype=float,
+    )
+
 
 def createRotationY(angle):
-    return    np.array([[m.cos(angle),0.0,m.sin(angle),0.0],
-               [0.0,1.0,0.0,0.0],
-               [-m.sin(angle),0.0,m.cos(angle),0.0],
-               [0.0,0.0,0.0,1.0]
-               ])
-
-def createTranslation(x,y,z):
-    return np.array([[1.0,0.0,0.0,x],
-            [0.0,1.0,0.0,y],
-            [0.0,0.0,1.0,z],
-            [0.0,0.0,0.0,1.0]
-            ])
-
-def createScale(xf,yf,zf):
-    return np.array([[xf,0.0,0.0,0.0],
-            [0.0,yf,0.0,0.0],
-            [0.0,0.0,zf,0.0],
-            [0.0,0.0,0.0,1.0]
-            ])
-    
+    return np.array(
+        [
+            [m.cos(angle), 0.0, m.sin(angle), 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [-m.sin(angle), 0.0, m.cos(angle), 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+        dtype=float,
+    )
 
 
-transform =  rot90x
+def createTranslation(x, y, z):
+    return np.array(
+        [
+            [1.0, 0.0, 0.0, x],
+            [0.0, 1.0, 0.0, y],
+            [0.0, 0.0, 1.0, z],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+        dtype=float,
+    )
+
+
+def createScale(xf, yf, zf):
+    return np.array(
+        [
+            [xf, 0.0, 0.0, 0.0],
+            [0.0, yf, 0.0, 0.0],
+            [0.0, 0.0, zf, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+        dtype=float,
+    )
+
+identity = np.array(
+    [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ],
+    dtype=float,
+)
+rot90z = np.array(
+    [
+        [0.0, 1.0, 0.0, 0.0],
+        [-1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ],
+    dtype=float,
+)
+
+rot90x = np.array(
+    [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, -1.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ],
+    dtype=float,
+)
+
+
+transform = rot90x
 
 
 class App:
@@ -613,14 +656,19 @@ class App:
     ran: bool = False
     show_z_buffer: bool = False
     animate_construction: bool = False
-    cube_verts: list[Vec4] = cube_verts    
+    cube_verts: list[Vec4] = cube_verts
     transformed_verts: list[Vec4] = []
-    render_tris = tris_from_verts(cube_verts, cube_faces)    
+    render_tris = []
     frame_count: int = 0
     step_through_mode: bool = False
 
+
+
     def __init__(self) -> None:
         pyxel.init(WIDTH, HEIGHT, fps=FPS)
+
+        #self.render_tris = tris_from_verts(cube_verts, cube_faces)
+        self.render_tris = tris_from_verts(cube_verts, test_faces)
         # pyxel.mouse(True)
         pyxel.run(self.update, self.draw)
 
@@ -643,31 +691,8 @@ class App:
         if pyxel.btnp(pyxel.KEY_Q):
             pyxel.quit()
 
-        self.transformed_verts = transform_verts(self.cube_verts,createTranslation(-0.5,-0.5,-0.5))
-        self.transformed_verts = transform_verts(self.transformed_verts,createScale(1.0,1.0,1.0)) 
-        total_scale = 40.0
-        self.transformed_verts = transform_verts(self.transformed_verts,createScale(total_scale,total_scale,total_scale))
-        self.transformed_verts = transform_verts(self.transformed_verts,createRotationZ(m.pi/50*self.frame_count+10))
-        self.transformed_verts = transform_verts(self.transformed_verts,createRotationY(m.pi/50*self.frame_count+10))
-        
-        right_cube = copy.deepcopy(self.transformed_verts)
-        left_cube = copy.deepcopy(self.transformed_verts)
-
-        right_cube= transform_verts(right_cube,createRotationZ(m.pi/50*self.frame_count+10))
-        right_cube = transform_verts(right_cube,createRotationY(m.pi/50*self.frame_count+10))
-
-        #left_cube= transform_verts(left_cube,createRotationZ(m.pi/50*self.frame_count+10))
-
-
-
-        #translations
-        right_cube = transform_verts(right_cube,createTranslation(total_scale,0,-200))
-        left_cube = transform_verts(left_cube,createTranslation(-total_scale,0,-200))
-
-
-        render_right = tris_from_verts(right_cube, cube_faces)    
-        render_left = tris_from_verts(left_cube, cube_faces)    
-        self.render_tris = render_right + render_left
+        #self.render_tris = self.cube_update()
+        self.render_tris = self.cube_update(self.cube_verts,test_faces)
 
     def draw(self):
         global pixel_buffer, z_buffer
@@ -675,12 +700,12 @@ class App:
             if self.step_through_mode:
                 self.ran = True
             else:
-                self.frame_count +=1
+                self.frame_count += 1
             pyxel.cls(0)
 
             pixel_buffer = Buffer(WIDTH, HEIGHT, 0)
             z_buffer = Buffer(WIDTH, HEIGHT, float("inf"))
-            
+
             anim_count = self.frame_count // 10 % len(self.render_tris) + 1
 
             if self.animate_construction:
@@ -689,27 +714,60 @@ class App:
             else:
                 partialTris = self.render_tris
 
-
             for i, tri in enumerate(partialTris[:]):
                 try:
-                    draw_tri(tri, cube_colors[i%len(cube_colors)])
-                except Exception as e: 
+                    draw_tri(tri, test_colors[i % len(test_colors)])
+                except Exception as e:
                     print(f"couldn't draw tri: {tri=}")
                     print(f"an error occured: {e}")
-                    #traceback.print_exc()
-
+                    # traceback.print_exc()
 
             # draw what is currently in the buffer to the screen
             pixel_buffer.draw()
             if self.show_z_buffer:
-                #print(set(z_buffer.contents))
+                # print(set(z_buffer.contents))
                 z_buffer.draw()
 
-
-            if self.animate_construction and anim_count == len(self.render_tris):
-                pyxel.text(0, 0, "Done drawing, press r to redraw", pyxel.COLOR_WHITE)
+            if self.animate_construction and anim_count == len(
+                self.render_tris
+            ):
+                pyxel.text(
+                    0, 0, "Done drawing, press r to redraw", pyxel.COLOR_WHITE
+                )
                 self.ran = True
 
+    def cube_update(self, verts,faces):
+        total_scale = 40.0
+        # matrix multiplaction order is left to right
+        common_tranform = (
+            createRotationY(m.pi / 50 * self.frame_count + 10)
+            @ createRotationZ(m.pi / 50 * self.frame_count + 10)
+            @ createScale(total_scale, total_scale, total_scale)
+            @ createTranslation(-0.5, -0.5, -0.5)
+        )
 
+        right_transform = (
+            createTranslation(total_scale, 0, -200)
+            @ createRotationZ(m.pi / 50 * self.frame_count + 10)
+            @ common_tranform
+        )
+
+        # left_cube= transform_verts(left_cube,createRotationZ(m.pi/50*self.frame_count+10))
+        left_transform = (
+            createTranslation(-total_scale, 0, -200)
+            @ createRotationY(m.pi / 50 * self.frame_count + 10)
+            @ common_tranform
+        )
+
+        right_cube = copy.deepcopy(verts)
+        left_cube = copy.deepcopy(verts)
+
+        # apply all transforms
+        right_cube = transform_verts(right_cube, right_transform)
+        left_cube = transform_verts(left_cube, left_transform)
+
+        render_right = tris_from_verts(right_cube, faces)
+        render_left = tris_from_verts(left_cube, faces)
+        return render_right + render_left
 
 App()
