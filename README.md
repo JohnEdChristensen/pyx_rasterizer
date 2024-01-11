@@ -1,8 +1,9 @@
 # Pyx Rasterizer
 Started on November 3, 2023 at the Recurse Center
+
 Authors:
-Quinten Konyn
-John Christensen
+- Quinten Konyn
+- John Christensen
 
 Live Demo: [Pyx Rasterizer](https://kitao.github.io/pyxel/wasm/launcher/?run=JohnEdChristensen.pyx_rasterizer.src.3D&gamepad=enabled&packages=numpy)
 
