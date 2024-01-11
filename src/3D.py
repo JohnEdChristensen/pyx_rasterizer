@@ -251,17 +251,25 @@ def z_estimate(p1: Point, p2: Point, p3: Point, pUnkown: Point) -> float:
     w1 = (
         (p2.y - p3.y) * (pUnkown.x - p3.x) + (p3.x - p2.x) * (pUnkown.y - p3.y)
     ) / ((p2.y - p3.y) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.y - p3.y))
+
     w2 = (
         (p3.y - p1.y) * (pUnkown.x - p3.x) + (p1.x - p3.x) * (pUnkown.y - p3.y)
     ) / ((p2.y - p3.y) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.y - p3.y))
+
     w3 = 1 - w1 - w2
 
     z_weighted_average = p1.z * w1 + p2.z * w2 + p3.z * w3
-
+    # print(f"{w1=} {w2=} {w3=}")
+    # print(f"{z_weighted_average=}")
     return z_weighted_average
 
 
 def draw_tri(tri: list[tuple[float, float, float]], color: int):
+    
+    #trying to sort for debugging z value dependence on order
+    tri = sorted(tri, key=lambda p: p[1])
+    points_to_process = tri[:]
+
     p1 = Point(*tri[0])
     p2 = Point(*tri[1])
     p3 = Point(*tri[2])
@@ -269,7 +277,6 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
     y_min = min(p1.y, p2.y, p3.y)
     y_max = max(p1.y, p2.y, p3.y)
 
-    points_to_process = tri[:]
     try:
         tri_type = characterize_tri(tri)
     except:
@@ -322,7 +329,7 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
 
         opposite_line = Line(pBottom, pTop)
         pNew = Point(
-            opposite_line.x(pMiddle.y), pMiddle.y, pMiddle.z
+            opposite_line.x(pMiddle.y), pMiddle.y, ((pTop.z +pMiddle.z + pBottom.z)/3)
         )  # TODO should this have a real z value?
         topTri = [pMiddle.as_tuple(), pNew.as_tuple(), pTop.as_tuple()]
         botTri = [pMiddle.as_tuple(), pNew.as_tuple(), pBottom.as_tuple()]
@@ -569,6 +576,16 @@ test_faces = [
 
 
 
+def createRotationX(angle):
+    return np.array(
+        [
+            [m.cos(angle), m.sin(angle), 0.0,0.0],
+            [-m.sin(angle), m.cos(angle), 0.0,0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+        dtype=float,
+    )
 
 def createRotationZ(angle):
     return np.array(
@@ -661,15 +678,16 @@ class App:
     render_tris = []
     frame_count: int = 0
     step_through_mode: bool = False
+    mouse_z = 0
 
 
 
     def __init__(self) -> None:
         pyxel.init(WIDTH, HEIGHT, fps=FPS)
 
-        #self.render_tris = tris_from_verts(cube_verts, cube_faces)
-        self.render_tris = tris_from_verts(cube_verts, test_faces)
-        # pyxel.mouse(True)
+        self.render_tris = tris_from_verts(cube_verts, cube_faces)
+        #self.render_tris = tris_from_verts(cube_verts, test_faces)
+        #pyxel.mouse(True)
         pyxel.run(self.update, self.draw)
 
     def update(self):
@@ -682,6 +700,7 @@ class App:
             self.ran = False
         if pyxel.btnp(pyxel.KEY_S):
             self.step_through_mode = not self.step_through_mode
+            self.ran=False
         if pyxel.btnp(pyxel.KEY_RIGHT):
             self.ran = False
             self.frame_count += 1
@@ -690,9 +709,27 @@ class App:
             self.ran = False
         if pyxel.btnp(pyxel.KEY_Q):
             pyxel.quit()
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
+            x = pyxel.mouse_x
+            y = pyxel.mouse_y + 200
+            if x >= WIDTH or x < 0:
+                print(f"x is out of range: {x=},{y=}")
+            else:
+                if y >= HEIGHT or y < 0:
+                    print(f"x is out of range: {x=},{y=}")
+                else:
+                    z_buff = z_buffer.get(x,y)
+                    print(f"{z_buff}=")
 
-        #self.render_tris = self.cube_update()
-        self.render_tris = self.cube_update(self.cube_verts,test_faces)
+
+
+        self.mouse_z += pyxel.mouse_wheel
+        #print(pyxel.mouse_wheel)
+        #print(self.mouse_z)
+
+
+        self.render_tris = self.cube_update(self.cube_verts,cube_faces)
+        #self.render_tris = self.test_update(self.cube_verts,test_faces)
 
     def draw(self):
         global pixel_buffer, z_buffer
@@ -716,7 +753,7 @@ class App:
 
             for i, tri in enumerate(partialTris[:]):
                 try:
-                    draw_tri(tri, test_colors[i % len(test_colors)])
+                    draw_tri(tri, cube_colors[i % len(cube_colors)])
                 except Exception as e:
                     print(f"couldn't draw tri: {tri=}")
                     print(f"an error occured: {e}")
@@ -736,27 +773,60 @@ class App:
                 )
                 self.ran = True
 
-    def cube_update(self, verts,faces):
+    def test_update(self, verts,faces):
         total_scale = 40.0
         # matrix multiplaction order is left to right
         common_tranform = (
-            createRotationY(m.pi / 50 * self.frame_count + 10)
-            @ createRotationZ(m.pi / 50 * self.frame_count + 10)
-            @ createScale(total_scale, total_scale, total_scale)
-            @ createTranslation(-0.5, -0.5, -0.5)
+            createRotationZ((pyxel.mouse_y/HEIGHT) * 2 *np.pi)
+                @ createRotationX((pyxel.mouse_x/WIDTH) * 2 *np.pi)
+                @ createRotationY(self.mouse_z * .25)
+                @ createScale(total_scale, total_scale, total_scale)
+                @ createTranslation(-0.5, -0.5, -0.5)
         )
 
         right_transform = (
             createTranslation(total_scale, 0, -200)
-            @ createRotationZ(m.pi / 50 * self.frame_count + 10)
-            @ common_tranform
+                @ common_tranform
         )
 
         # left_cube= transform_verts(left_cube,createRotationZ(m.pi/50*self.frame_count+10))
         left_transform = (
             createTranslation(-total_scale, 0, -200)
-            @ createRotationY(m.pi / 50 * self.frame_count + 10)
-            @ common_tranform
+                @ common_tranform
+        )
+
+        right_cube = copy.deepcopy(verts)
+        left_cube = copy.deepcopy(verts)
+
+        # apply all transforms
+        right_cube = transform_verts(right_cube, right_transform)
+        left_cube = transform_verts(left_cube, left_transform)
+
+        render_right = tris_from_verts(right_cube, faces)
+        render_left = tris_from_verts(left_cube, faces)
+        return render_right + render_left
+
+    def cube_update(self, verts,faces):
+        total_scale = 40.0
+        # matrix multiplaction order is left to right
+        common_tranform = (
+            createRotationY(m.pi / 50 * self.frame_count + 10)
+                @ createRotationZ(m.pi / 50 * self.frame_count + 10)
+                @ createScale(total_scale, total_scale, total_scale)
+                @ createTranslation(-0.5, -0.5, -0.5)
+        )
+
+        right_transform = (
+            createTranslation(total_scale, 0, -200)
+                @ createRotationZ(m.pi / 50 * self.frame_count + 10)
+                @ common_tranform
+        )
+
+        # left_cube= transform_verts(left_cube,createRotationZ(m.pi/50*self.frame_count+10))
+        left_transform = (
+            createTranslation(-total_scale, 0, -200)
+                @ createRotationZ(-m.pi / 50 * self.frame_count + 10)
+                @ common_tranform
         )
 
         right_cube = copy.deepcopy(verts)

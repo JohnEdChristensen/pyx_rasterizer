@@ -7,10 +7,11 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-pyxel = "^1.9.18"
 mypy = "^1.6.1"
 pillow = "^10.1.0"
 types-pillow = "^10.1.0.0"
+numpy = "^1.26.2"
+pyxel = "^2.0.3"
 
 
 [build-system]
