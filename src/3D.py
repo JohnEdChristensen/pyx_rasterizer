@@ -9,7 +9,10 @@ import copy
 import numpy as np
 import numpy.typing as npt
 
+import src.obj_parser as obj # pyright: ignore
+
 import pyxel
+
 
 T = TypeVar("T")
 
@@ -330,7 +333,7 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
         opposite_line = Line(pBottom, pTop)
         pNew = Point(
             opposite_line.x(pMiddle.y), pMiddle.y, ((pTop.z +pMiddle.z + pBottom.z)/3)
-        )  # TODO should this have a real z value?
+        )  # TODO use a weighted average (by distance), this will proabably break in some cases
         topTri = [pMiddle.as_tuple(), pNew.as_tuple(), pTop.as_tuple()]
         botTri = [pMiddle.as_tuple(), pNew.as_tuple(), pBottom.as_tuple()]
 
@@ -666,14 +669,17 @@ rot90x = np.array(
 
 transform = rot90x
 
-
+obj_tris,obj_faces = obj.load("./assets/porygon/model.obj")
+print(obj_tris,obj_faces)
 class App:
     t: float = 0
     p: Point = Point(0, 0, 0)
     ran: bool = False
     show_z_buffer: bool = False
     animate_construction: bool = False
-    cube_verts: list[Vec4] = cube_verts
+    src_verts: list[Vec4] = obj_tris
+    #render_verts: list[Vec4] = copy.deepcopy(src_verts) # TODO do we need th raw vertices?
+    faces: list[list[int]] = obj_faces
     transformed_verts: list[Vec4] = []
     render_tris = []
     frame_count: int = 0
@@ -685,7 +691,7 @@ class App:
     def __init__(self) -> None:
         pyxel.init(WIDTH, HEIGHT, fps=FPS)
 
-        self.render_tris = tris_from_verts(cube_verts, cube_faces)
+        self.render_tris = tris_from_verts(self.src_verts, self.faces)
         #self.render_tris = tris_from_verts(cube_verts, test_faces)
         #pyxel.mouse(True)
         pyxel.run(self.update, self.draw)
@@ -728,7 +734,7 @@ class App:
         #print(self.mouse_z)
 
 
-        self.render_tris = self.cube_update(self.cube_verts,cube_faces)
+        self.render_tris = self.cube_update(self.src_verts,self.faces)
         #self.render_tris = self.test_update(self.cube_verts,test_faces)
 
     def draw(self):
