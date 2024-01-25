@@ -97,9 +97,9 @@ class Buffer:
                     if z == float("inf"):
                         color = 0
                     else:
-                        color = int((z % 15))
+                        color = z_pallette[int((z/6 % len(z_pallette) ))]
                     pyxel.pset(x, y, color)
-
+z_pallette = [8,9,10,11,12,5,1,2]
 
 @dataclasses.dataclass
 class Point:
