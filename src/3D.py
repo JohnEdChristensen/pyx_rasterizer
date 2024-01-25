@@ -734,7 +734,8 @@ class App:
         #print(self.mouse_z)
 
 
-        self.render_tris = self.cube_update(self.src_verts,self.faces)
+        self.render_tris = self.model_rotate(self.src_verts,self.faces)
+        #self.render_tris = self.cube_update(self.src_verts,self.faces)
         #self.render_tris = self.test_update(self.cube_verts,test_faces)
 
     def draw(self):
@@ -811,6 +812,21 @@ class App:
         render_right = tris_from_verts(right_cube, faces)
         render_left = tris_from_verts(left_cube, faces)
         return render_right + render_left
+
+    def model_rotate(self, verts,faces):
+        total_scale = 80.0
+        # matrix multiplaction order is left to right
+        transform = (
+            createRotationY(m.pi / 50 * self.frame_count + 10)
+                @ createScale(total_scale, total_scale, total_scale)
+        )
+
+
+        render_verts = copy.deepcopy(verts)
+
+        render_verts = transform_verts(render_verts, transform)
+        render_tris = tris_from_verts(render_verts, faces)
+        return render_tris
 
     def cube_update(self, verts,faces):
         total_scale = 40.0
