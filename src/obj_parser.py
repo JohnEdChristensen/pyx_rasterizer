@@ -32,15 +32,9 @@ def poly_to_tri(faces, vertices):
             verts = np.array([vertices[v] for v in f])
             center_vert = np.mean(verts, axis=0)
             vertices.append(center_vert)
-            center_index = len(vertices) -1
+            center_index = len(vertices) - 1
             for i, v in enumerate(verts):
-                new_faces.append(
-                    [
-                        f[i],
-                        f[(i + 1)%n],
-                        center_index
-                    ]
-                )
+                new_faces.append([f[i], f[(i + 1) % n], center_index])
 
             # TODO implement
             # define a vertext that is the center,
@@ -49,5 +43,7 @@ def poly_to_tri(faces, vertices):
             pass
     return new_faces
 
+
 if __name__ == "__main__":
     verts, faces = load("../assets/porygon/model.obj")
+    print(verts, faces)
