@@ -1,4 +1,5 @@
 # following https://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html
+import math as m
 
 # header = b'\x47\x49\x46\x38\x39\x61'
 #            G,     I,   F,    8,     9,   a, # 89a is the version alternatives are 87a
@@ -39,8 +40,8 @@ def iter_to_bytes(iter: Iterable) -> bytes:
 
 def color_table():
     # TODO match color resolution in logical_screen_descriptor
-    white = (255, 255, 255)
-    red = (255, 0, 0)
+    white = (1, 255, 1)
+    red = (128, 128, 128)
     blue = (0, 0, 255)
     black = (0, 0, 0)
     color_1 = iter_to_bytes(white)
@@ -87,13 +88,31 @@ def local_color_table():
     ...
 
 
-def image_data():
+def image_data(data):
     lzw_min_code_size = int.to_bytes(2)
-    block_size = int.to_bytes(22)
-    data = bytes([0x8C, 0x2D, 0x99, 0x87, 0x2A, 0x1C, 0xDC, 0x33, 0xA0, 0x02, 0x75, 0xEC, 0x95, 0xFA, 0xA8, 0xDE, 0x60, 0x8C, 0x04, 0x91, 0x4C, 0x01])  # fmt: skip
+    # block_size = int.to_bytes(22)
     block_terminator = b"\x00"  # always 0
 
-    return lzw_min_code_size + block_size + data + block_terminator
+    encoded_data = "100"
+
+    for byte in data:
+        encoded_data += "0"
+        encoded_data += f"{byte:02b}"
+
+    encoded_data += "101"
+    num_bits = len(encoded_data)
+    num_bits_to_add = 8 - (num_bits % 8)
+
+    encoded_data = encoded_data + "0" * num_bits_to_add
+    print(encoded_data)
+
+    num_bytes = len(encoded_data) // 8
+    print(len(encoded_data), num_bytes)
+    encoded_data = int(encoded_data, 2).to_bytes(num_bytes, "little")
+
+    block_size = int.to_bytes(num_bytes)
+    print(encoded_data)
+    return lzw_min_code_size + block_size + encoded_data + block_terminator
 
 
 def comment_extension():
@@ -101,16 +120,25 @@ def comment_extension():
 
 
 with open("by_hand_gif.gif", "wb", buffering=0) as f:
+    # data = bytes([0x8C, 0x2D, 0x99, 0x87, 0x2A, 0x1C, 0xDC, 0x33, 0xA0, 0x02, 0x75, 0xEC, 0x95, 0xFA, 0xA8, 0xDE, 0x60, 0x8C, 0x04, 0x91, 0x4C, 0x01]))
+    # data = [0xA2] * 23
+    # data = [0x88] + data + [0x8D]
+    # data = bytes(data)
+    # data = bytes([0x55] * 25)
+    data = ([1] * 5 + [2] * 5) * 3
+    data += ([1] * 3 + [0] * 4 + [2] * 3) * 2
+    data += ([2] * 3 + [0] * 4 + [1] * 3) * 2
+    data += ([2] * 5 + [1] * 5) * 3
     f.write(
         header
         + logical_screen_descriptor(10, 10)
         + color_table()
         + graphic_control_extension()
         + image_descriptor()
-        + image_data()
+        + image_data(data)
         # + comment_extension()
         + b"\x3B"
-    )
+    )  # fmt: skip
     # byte_string = ""
     # for b in gif_hex_array:
     #     s = hex(b)[2:]
