@@ -10,6 +10,7 @@ import numpy as np
 import numpy.typing as npt
 
 import src.obj_parser as obj # pyright: ignore
+import src.gif_exporter as gif_exporter
 
 import pyxel
 
@@ -666,7 +667,24 @@ rot90x = np.array(
     dtype=float,
 )
 
-
+colors_rgb = [
+(22, 23, 26)
+,(127, 6, 34)
+,(214, 36, 17)
+,(255, 132, 38)
+,(255, 209, 0)
+,(250, 253, 255)
+,(255, 128, 164)
+,(255, 38, 116)
+,(148, 33, 106)
+,(67, 0, 103)
+,(35, 73, 117)
+,(104, 174, 212)
+,(191, 255, 60)
+,(16, 210, 117)
+,(0, 120, 153)
+,(0, 40, 89)
+]
 transform = rot90x
 
 obj_tris,obj_faces = obj.load("./assets/porygon/model.obj")
@@ -713,6 +731,27 @@ class App:
         if pyxel.btnp(pyxel.KEY_LEFT):
             self.frame_count -= 1
             self.ran = False
+        if pyxel.btnp(pyxel.KEY_P):
+            try:
+                gif_exporter.export_image("pyx_raster.gif",pixel_buffer.contents,WIDTH,HEIGHT,colors_rgb )
+
+                # data = ([1] * 5 + [4] * 5) * 3
+                # data += ([1] * 3 + [0] * 4 + [4] * 3) * 2
+                # data += ([2] * 3 + [0] * 4 + [3] * 3) * 2
+                # data += ([2] * 5 + [3] * 5) * 3
+                #
+                # white = (255, 255, 255)
+                # red = (255, 0, 0)
+                # blue = (0, 0, 255)
+                # green = (0, 255, 0)
+                # yellow = (255, 255,0 )
+                # black = (0, 0, 0)
+                # colors = [white,red,blue,green,yellow]
+                #
+                # gif_exporter.export_image("by_hand.gif", data,20,5,colors)
+            except Exception as e:
+                print(e)
+                raise e
         if pyxel.btnp(pyxel.KEY_Q):
             pyxel.quit()
         if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):

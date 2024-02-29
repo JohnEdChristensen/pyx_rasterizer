@@ -1,6 +1,8 @@
 # following https://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html
 import math as m
 
+from itertools import islice
+
 # header = b'\x47\x49\x46\x38\x39\x61'
 #            G,     I,   F,    8,     9,   a, # 89a is the version alternatives are 87a
 from collections.abc import Iterable
@@ -9,20 +11,21 @@ from collections.abc import Iterable
 header = b"GIF89a"
 
 
-def logical_screen_descriptor(canvas_width, canvas_height):
+def logical_screen_descriptor(canvas_width, canvas_height,global_color_table_size):
     # bytes 0,1
     canvas_width = canvas_width.to_bytes(2, "little")
     # bytes 2,3
     canvas_height = canvas_height.to_bytes(2, "little")
 
     # byte 4
-    global_color_table = b"1"
-    color_resolution = b"001"
-    sort_flag = b"0"
-    size_of_global_color_table = b"001"
-
-    byte_4 = global_color_table + color_resolution + sort_flag + size_of_global_color_table
-
+    global_color_table = "1"
+    color_resolution = "001"
+    sort_flag = "0"
+    size_of_global_color_table = f"{global_color_table_size-1:03b}"
+    byte_4 = (
+        global_color_table + color_resolution + sort_flag + size_of_global_color_table
+    )
+    
     hex_4 = int(byte_4, 2).to_bytes()
 
     # byte 5
@@ -30,7 +33,13 @@ def logical_screen_descriptor(canvas_width, canvas_height):
 
     # byte 6
     pixel_aspect_ratio = b"\x00"  # most modern gif viewers ignore this :(
-    return canvas_width + canvas_height + hex_4 + background_color_index + pixel_aspect_ratio
+    return (
+        canvas_width
+        + canvas_height
+        + hex_4
+        + background_color_index
+        + pixel_aspect_ratio
+    )
 
 
 def iter_to_bytes(iter: Iterable) -> bytes:
@@ -38,18 +47,12 @@ def iter_to_bytes(iter: Iterable) -> bytes:
     return b"".join(x.to_bytes() for x in iter)
 
 
-def color_table():
-    # TODO match color resolution in logical_screen_descriptor
-    white = (1, 255, 1)
-    red = (128, 128, 128)
-    blue = (0, 0, 255)
-    black = (0, 0, 0)
-    color_1 = iter_to_bytes(white)
-    color_2 = iter_to_bytes(red)
-    color_3 = iter_to_bytes(blue)
-    color_4 = iter_to_bytes(black)
+def color_table(colors,table_bit_size):
+    #TODO match color resolution in logical_screen_descriptor
+    num_colors_to_add = 2**table_bit_size -len(colors)
+    colors += [(0,0,0)]*num_colors_to_add
 
-    return color_1 + color_2 + color_3 + color_4
+    return b"".join([iter_to_bytes(color) for color in colors])
 
 
 def graphic_control_extension():
@@ -72,76 +75,113 @@ def graphic_control_extension():
     )
 
 
-def image_descriptor():
+def image_descriptor(width,height):
     image_seperator = b"\x2C"  # always 0x2C
     image_left = int.to_bytes(0, 2, "little")
     image_top = int.to_bytes(0, 2, "little")
-    image_width = int.to_bytes(10, 2, "little")
-    image_height = int.to_bytes(10, 2, "little")
+    image_width = int.to_bytes(width, 2, "little")
+    image_height = int.to_bytes(height, 2, "little")
     # If adding local color table, add local_color_table implementation
     packed_field = b"\x00"  # lots of flags, interlace, sort, local color table
 
-    return image_seperator + image_left + image_top + image_width + image_height + packed_field
+    return (
+        image_seperator
+        + image_left
+        + image_top
+        + image_width
+        + image_height
+        + packed_field
+    )
 
 
 def local_color_table():
     ...
 
 
-def image_data(data):
-    lzw_min_code_size = int.to_bytes(2)
-    # block_size = int.to_bytes(22)
-    block_terminator = b"\x00"  # always 0
+def print_img_data(data):
+    for i in range(0, len(data), 10):
+        print(data[i : i + 10])
 
-    encoded_data = "100"
 
-    for byte in data:
-        encoded_data += "0"
-        encoded_data += f"{byte:02b}"
+def print_codes(codes):
+    for i in range(0, len(codes), 20):
+        print(codes[i : i + 20])
 
-    encoded_data += "101"
+
+def data_to_codes(data:list[int],num_color_bits)->list[int]:
+
+    clear_code = 2**num_color_bits
+    end_info_code = clear_code+1
+
+    encoded_data =[] 
+    for value in data:
+        encoded_data += [clear_code,value]
+
+    encoded_data += [end_info_code]
+    return encoded_data
+
+
+def image_data(data,num_color_bits):
+    lzw_min_code_size = int.to_bytes(num_color_bits,1,"little")
+
+    codes = data_to_codes(data,num_color_bits)
+    
+    encoded_data = ""
+    for code in codes:
+        encoded_data = f"{code:0{num_color_bits+1}b}" + encoded_data
+
+
     num_bits = len(encoded_data)
     num_bits_to_add = 8 - (num_bits % 8)
 
-    encoded_data = encoded_data + "0" * num_bits_to_add
-    print(encoded_data)
+    
+    encoded_data = ("0" * num_bits_to_add) + encoded_data
 
     num_bytes = len(encoded_data) // 8
-    print(len(encoded_data), num_bytes)
-    encoded_data = int(encoded_data, 2).to_bytes(num_bytes, "little")
 
-    block_size = int.to_bytes(num_bytes)
-    print(encoded_data)
-    return lzw_min_code_size + block_size + encoded_data + block_terminator
+    final_bytes = int(encoded_data, 2).to_bytes(num_bytes, "little")
+
+    block_size = int.to_bytes(num_bytes, 1, "little")
+    block_terminator = b"\x00"  # always 0
+    return lzw_min_code_size + block_size + final_bytes + block_terminator
 
 
 def comment_extension():
     ...
 
 
-with open("by_hand_gif.gif", "wb", buffering=0) as f:
-    # data = bytes([0x8C, 0x2D, 0x99, 0x87, 0x2A, 0x1C, 0xDC, 0x33, 0xA0, 0x02, 0x75, 0xEC, 0x95, 0xFA, 0xA8, 0xDE, 0x60, 0x8C, 0x04, 0x91, 0x4C, 0x01]))
-    # data = [0xA2] * 23
-    # data = [0x88] + data + [0x8D]
-    # data = bytes(data)
-    # data = bytes([0x55] * 25)
-    data = ([1] * 5 + [2] * 5) * 3
-    data += ([1] * 3 + [0] * 4 + [2] * 3) * 2
-    data += ([2] * 3 + [0] * 4 + [1] * 3) * 2
-    data += ([2] * 5 + [1] * 5) * 3
-    f.write(
-        header
-        + logical_screen_descriptor(10, 10)
-        + color_table()
-        + graphic_control_extension()
-        + image_descriptor()
-        + image_data(data)
-        # + comment_extension()
-        + b"\x3B"
-    )  # fmt: skip
-    # byte_string = ""
-    # for b in gif_hex_array:
-    #     s = hex(b)[2:]
-    #     print(s)
-    #     f.write(bytes.fromhex(s))
-# struct.pack('<H', 10).fromhex()
+
+def export_image(file_name, data, width, height, colors):
+    num_colors = len(colors)
+    num_color_bits = m.ceil(m.log2(num_colors))
+    print("num_color_bits:",num_color_bits)
+    with open(file_name, "wb", buffering=0) as f:
+        f.write(
+            header
+            + logical_screen_descriptor(width,height,num_color_bits)#TODO make this color size a reasonable input
+            + color_table(colors,num_color_bits)
+            + graphic_control_extension()
+            + image_descriptor(width,height)
+            + image_data(data,num_color_bits)
+            # + comment_extension()
+            + b"\x3B"
+        )  # fmt: skip
+
+
+if __name__ == "__main__":
+    data = ([1] * 5 + [4] * 5) * 3
+    data += ([1] * 3 + [0] * 4 + [4] * 3) * 2
+    data += ([2] * 3 + [0] * 4 + [3] * 3) * 2
+    data += ([2] * 5 + [3] * 5) * 3
+    print_img_data(data)
+
+    white = (255, 255, 255)
+    red = (255, 0, 0)
+    blue = (0, 0, 255)
+    green = (0, 255, 0)
+    yellow = (255, 255,0 )
+    black = (0, 0, 0)
+    colors = [white,red,blue,green,yellow]
+
+    export_image("by_hand.gif", data,20,5,colors)
+
