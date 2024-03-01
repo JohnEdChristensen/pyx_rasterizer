@@ -26,10 +26,10 @@ def logical_screen_descriptor(canvas_width, canvas_height,global_color_table_siz
         global_color_table + color_resolution + sort_flag + size_of_global_color_table
     )
     
-    hex_4 = int(byte_4, 2).to_bytes()
+    hex_4 = int(byte_4, 2).to_bytes(1, "little")
 
     # byte 5
-    background_color_index = int.to_bytes(0)
+    background_color_index = int.to_bytes(0, 1, "little")
 
     # byte 6
     pixel_aspect_ratio = b"\x00"  # most modern gif viewers ignore this :(
@@ -44,7 +44,7 @@ def logical_screen_descriptor(canvas_width, canvas_height,global_color_table_siz
 
 def iter_to_bytes(iter: Iterable) -> bytes:
     """iterable values must fit in 1 byte"""
-    return b"".join(x.to_bytes() for x in iter)
+    return b"".join(x.to_bytes(1, "little") for x in iter)
 
 
 def color_table(colors,table_bit_size):
@@ -58,10 +58,10 @@ def color_table(colors,table_bit_size):
 def graphic_control_extension():
     extension_introducer = b"\x21"  # always 0x21
     graphic_control_label = b"\xF9"  # always 0xF9
-    block_size = int.to_bytes(4)
+    block_size = int.to_bytes(4, 1, "little")
     packed_field = b"\x00"  # many flags in here
     delay_time = int.to_bytes(0, 2, "little")
-    transparent_color_index = int.to_bytes(0)
+    transparent_color_index = int.to_bytes(0, 1, "little")
     block_terminator = b"\x00"  # always 0
 
     return (

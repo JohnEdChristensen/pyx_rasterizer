@@ -9,8 +9,8 @@ import copy
 import numpy as np
 import numpy.typing as npt
 
-import src.obj_parser as obj # pyright: ignore
-import src.gif_exporter as gif_exporter
+import obj_parser as obj # pyright: ignore
+import gif_exporter as gif_exporter
 
 import pyxel
 
