@@ -139,11 +139,33 @@ def image_data(data,num_color_bits):
 
     num_bytes = len(encoded_data) // 8
 
-    final_bytes = int(encoded_data, 2).to_bytes(num_bytes, "little")
+    # gif image data sub-blocks can not be larger
+    # than 255 bytes
+    sub_block_max = 255
+    num_sub_blocks = m.ceil(num_bytes / sub_block_max)
 
-    block_size = int.to_bytes(num_bytes, 1, "little")
+    output_bytes = lzw_min_code_size
+    for i in range(num_sub_blocks):
+        if i < num_sub_blocks - 1:
+            sub_block_size_int = sub_block_max
+            start_index = len(encoded_data) - 8 * sub_block_max * (i + 1)
+            end_index = len(encoded_data) - 8 * sub_block_max * i
+            sub_block_data = encoded_data[start_index:end_index]
+        else:
+            start_index = 0
+            end_index = len(encoded_data) - 8 * sub_block_max * i
+            sub_block_data = encoded_data[:end_index]
+            sub_block_size_int = len(sub_block_data) // 8
+
+        sub_block_size = int.to_bytes(sub_block_size_int, 1, "little")
+        sub_block_bytes = int(sub_block_data, 2).to_bytes(sub_block_size_int, "little")
+
+        output_bytes += sub_block_size + sub_block_bytes
+
     block_terminator = b"\x00"  # always 0
-    return lzw_min_code_size + block_size + final_bytes + block_terminator
+    output_bytes += block_terminator
+
+    return output_bytes
 
 
 def comment_extension():
