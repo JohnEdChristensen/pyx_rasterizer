@@ -46,11 +46,11 @@ class Buffer:
 
     def get_index(self, x: int, y: int):
         if x >= self.width or x < 0:
-            print(f"x is out of range: {x=},{y=}")
+            #print(f"x is out of range: {x=},{y=}")
             raise Exception(f"x is out of range: {x=},{y=}")
 
         if y >= self.height or y < 0:
-            print(f"x is out of range: {x=},{y=}")
+            #print(f"x is out of range: {x=},{y=}")
             raise Exception(f"y is out of range: {x=},{y=}")
 
         return y * self.width + x
@@ -60,13 +60,14 @@ class Buffer:
             index = self.get_index(x, y)
             self.contents[index] = value
         except:
-            print(f"tried to set x or y out of range: {x=},{y=}")
+            pass
+            #print(f"tried to set x or y out of range: {x=},{y=}")
 
     def get(self, x: int, y: int) -> Any:
         try:
             index = self.get_index(x, y)
         except ():
-            print(f"tried to get x or y out of range: {x=},{y=}")
+            #print(f"tried to get x or y out of range: {x=},{y=}")
             traceback.print_exc()
             return 0
         return self.contents[index]
@@ -209,11 +210,11 @@ def characterize_tri(tri: list[tuple[float, float, float]]) -> TriType:
     p3 = Point(*tri[2])
     # you can chain things 0.o
     if p1.x == p2.x == p3.x:
-        print("All 3 x values are equal. I can't draw that!")
+        #print("All 3 x values are equal. I can't draw that!")
         raise Exception("All 3 x values are equal. I can't draw that!")
     if p1.y == p2.y == p3.y:
-        print("All 3 y values are equal. I can't draw that!")
-        print(f"{p1=}\n{p2=}\n{p3=}")
+        #print("All 3 y values are equal. I can't draw that!")
+        #print(f"{p1=}\n{p2=}\n{p3=}")
         raise Exception("All 3 y values are equal. I can't draw that!")
 
     if p1.y == p2.y:
@@ -284,9 +285,9 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
     try:
         tri_type = characterize_tri(tri)
     except:
-        print("couldn't characterize triangle to a drawable type")
-        print("unidentifiable triangle:")
-        print(p1, p2, p3, sep="\n")
+        #print("couldn't characterize triangle to a drawable type")
+        #print("unidentifiable triangle:")
+        #print(p1, p2, p3, sep="\n")
         return
 
     # print(f"{tri_type=}")
@@ -688,7 +689,7 @@ colors_rgb = [
 transform = rot90x
 
 obj_tris,obj_faces = obj.load("./assets/porygon/model.obj")
-print(obj_tris,obj_faces)
+#print(obj_tris,obj_faces)
 class App:
     t: float = 0
     p: Point = Point(0, 0, 0)
@@ -732,39 +733,22 @@ class App:
             self.frame_count -= 1
             self.ran = False
         if pyxel.btnp(pyxel.KEY_P):
-            try:
-                gif_exporter.export_image("pyx_raster.gif",pixel_buffer.contents,WIDTH,HEIGHT,colors_rgb )
-
-                # data = ([1] * 5 + [4] * 5) * 3
-                # data += ([1] * 3 + [0] * 4 + [4] * 3) * 2
-                # data += ([2] * 3 + [0] * 4 + [3] * 3) * 2
-                # data += ([2] * 5 + [3] * 5) * 3
-                #
-                # white = (255, 255, 255)
-                # red = (255, 0, 0)
-                # blue = (0, 0, 255)
-                # green = (0, 255, 0)
-                # yellow = (255, 255,0 )
-                # black = (0, 0, 0)
-                # colors = [white,red,blue,green,yellow]
-                #
-                # gif_exporter.export_image("by_hand.gif", data,20,5,colors)
-            except Exception as e:
-                print(e)
-                raise e
+            gif_exporter.export_image("pyx_raster.gif",pixel_buffer.contents,WIDTH,HEIGHT,colors_rgb )
         if pyxel.btnp(pyxel.KEY_Q):
             pyxel.quit()
         if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
             x = pyxel.mouse_x
             y = pyxel.mouse_y + 200
             if x >= WIDTH or x < 0:
-                print(f"x is out of range: {x=},{y=}")
+                pass
+                #print(f"x is out of range: {x=},{y=}")
             else:
                 if y >= HEIGHT or y < 0:
-                    print(f"x is out of range: {x=},{y=}")
+                    pass
+                    #print(f"x is out of range: {x=},{y=}")
                 else:
                     z_buff = z_buffer.get(x,y)
-                    print(f"{z_buff}=")
+                    #print(f"{z_buff}=")
 
 
 
@@ -801,8 +785,9 @@ class App:
                 try:
                     draw_tri(tri, cube_colors[i % len(cube_colors)])
                 except Exception as e:
-                    print(f"couldn't draw tri: {tri=}")
-                    print(f"an error occured: {e}")
+                    pass
+                    #print(f"couldn't draw tri: {tri=}")
+                    #print(f"an error occured: {e}")
                     # traceback.print_exc()
 
             # draw what is currently in the buffer to the screen
