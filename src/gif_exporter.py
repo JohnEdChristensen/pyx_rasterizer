@@ -1,5 +1,6 @@
 # following https://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html
 import math as m
+from typing import List
 
 from itertools import islice
 
@@ -11,7 +12,7 @@ from collections.abc import Iterable
 header = b"GIF89a"
 
 
-def logical_screen_descriptor(canvas_width, canvas_height,global_color_table_size):
+def logical_screen_descriptor(canvas_width, canvas_height, global_color_table_size):
     # bytes 0,1
     canvas_width = canvas_width.to_bytes(2, "little")
     # bytes 2,3
@@ -22,10 +23,8 @@ def logical_screen_descriptor(canvas_width, canvas_height,global_color_table_siz
     color_resolution = "001"
     sort_flag = "0"
     size_of_global_color_table = f"{global_color_table_size-1:03b}"
-    byte_4 = (
-        global_color_table + color_resolution + sort_flag + size_of_global_color_table
-    )
-    
+    byte_4 = global_color_table + color_resolution + sort_flag + size_of_global_color_table
+
     hex_4 = int(byte_4, 2).to_bytes(1, "little")
 
     # byte 5
@@ -33,13 +32,7 @@ def logical_screen_descriptor(canvas_width, canvas_height,global_color_table_siz
 
     # byte 6
     pixel_aspect_ratio = b"\x00"  # most modern gif viewers ignore this :(
-    return (
-        canvas_width
-        + canvas_height
-        + hex_4
-        + background_color_index
-        + pixel_aspect_ratio
-    )
+    return canvas_width + canvas_height + hex_4 + background_color_index + pixel_aspect_ratio
 
 
 def iter_to_bytes(iter: Iterable) -> bytes:
@@ -47,17 +40,17 @@ def iter_to_bytes(iter: Iterable) -> bytes:
     return b"".join(x.to_bytes(1, "little") for x in iter)
 
 
-def color_table(colors,table_bit_size):
-    #TODO match color resolution in logical_screen_descriptor
-    num_colors_to_add = 2**table_bit_size -len(colors)
-    colors += [(0,0,0)]*num_colors_to_add
+def color_table(colors, table_bit_size):
+    # TODO match color resolution in logical_screen_descriptor
+    num_colors_to_add = 2**table_bit_size - len(colors)
+    colors += [(0, 0, 0)] * num_colors_to_add
 
     return b"".join([iter_to_bytes(color) for color in colors])
 
 
 def graphic_control_extension():
     extension_introducer = b"\x21"  # always 0x21
-    graphic_control_label = b"\xF9"  # always 0xF9
+    graphic_control_label = b"\xf9"  # always 0xF9
     block_size = int.to_bytes(4, 1, "little")
     packed_field = b"\x00"  # many flags in here
     delay_time = int.to_bytes(0, 2, "little")
@@ -75,8 +68,8 @@ def graphic_control_extension():
     )
 
 
-def image_descriptor(width,height):
-    image_seperator = b"\x2C"  # always 0x2C
+def image_descriptor(width, height):
+    image_seperator = b"\x2c"  # always 0x2C
     image_left = int.to_bytes(0, 2, "little")
     image_top = int.to_bytes(0, 2, "little")
     image_width = int.to_bytes(width, 2, "little")
@@ -84,18 +77,10 @@ def image_descriptor(width,height):
     # If adding local color table, add local_color_table implementation
     packed_field = b"\x00"  # lots of flags, interlace, sort, local color table
 
-    return (
-        image_seperator
-        + image_left
-        + image_top
-        + image_width
-        + image_height
-        + packed_field
-    )
+    return image_seperator + image_left + image_top + image_width + image_height + packed_field
 
 
-def local_color_table():
-    ...
+def local_color_table(): ...
 
 
 def print_img_data(data):
@@ -108,33 +93,37 @@ def print_codes(codes):
         print(codes[i : i + 20])
 
 
-def data_to_codes(data:list[int],num_color_bits)->list[int]:
+Index = int
+IndexStream = List[Index]
+Code = int
+CodeStream = List[Code]
 
+
+# index stream to code stream
+def data_to_codes(indexStream: IndexStream, num_color_bits: int) -> CodeStream:
     clear_code = 2**num_color_bits
-    end_info_code = clear_code+1
+    end_info_code = clear_code + 1
 
-    encoded_data =[] 
-    for value in data:
-        encoded_data += [clear_code,value]
+    encoded_data: CodeStream = []
+    for index in indexStream:
+        encoded_data += [clear_code, index]
 
     encoded_data += [end_info_code]
     return encoded_data
 
 
-def image_data(data,num_color_bits):
-    lzw_min_code_size = int.to_bytes(num_color_bits,1,"little")
+def image_data(data, num_color_bits):
+    lzw_min_code_size = int.to_bytes(num_color_bits, 1, "little")
 
-    codes = data_to_codes(data,num_color_bits)
-    
+    codes = data_to_codes(data, num_color_bits)
+
     encoded_data = ""
     for code in codes:
         encoded_data = f"{code:0{num_color_bits+1}b}" + encoded_data
 
-
     num_bits = len(encoded_data)
     num_bits_to_add = 8 - (num_bits % 8)
 
-    
     encoded_data = ("0" * num_bits_to_add) + encoded_data
 
     num_bytes = len(encoded_data) // 8
@@ -168,15 +157,13 @@ def image_data(data,num_color_bits):
     return output_bytes
 
 
-def comment_extension():
-    ...
-
+def comment_extension(): ...
 
 
 def export_image(file_name, data, width, height, colors):
     num_colors = len(colors)
     num_color_bits = m.ceil(m.log2(num_colors))
-    print("num_color_bits:",num_color_bits)
+    print("num_color_bits:", num_color_bits)
     with open(file_name, "wb", buffering=0) as f:
         f.write(
             header
@@ -201,9 +188,8 @@ if __name__ == "__main__":
     red = (255, 0, 0)
     blue = (0, 0, 255)
     green = (0, 255, 0)
-    yellow = (255, 255,0 )
+    yellow = (255, 255, 0)
     black = (0, 0, 0)
-    colors = [white,red,blue,green,yellow]
+    colors = [white, red, blue, green, yellow]
 
-    export_image("by_hand.gif", data,20,5,colors)
-
+    export_image("by_hand.gif", data, 20, 5, colors)
