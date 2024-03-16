@@ -42,8 +42,8 @@ def iter_to_bytes(iter: Iterable) -> bytes:
 
 def color_table(colors, table_bit_size):
     # TODO match color resolution in logical_screen_descriptor
-    num_colors_to_add = 2**table_bit_size - len(colors)
-    colors += [(0, 0, 0)] * num_colors_to_add
+    num_to_pad = 2**table_bit_size - len(colors)
+    colors += [(0, 0, 0)] * num_to_pad
 
     return b"".join([iter_to_bytes(color) for color in colors])
 
@@ -93,23 +93,40 @@ def print_codes(codes):
         print(codes[i : i + 20])
 
 
-Index = int
-IndexStream = List[Index]
-Code = int
-CodeStream = List[Code]
+# Index = int
+# IndexStream = list[Index]
+# Code = int
+# CodeStream = list[Code]
 
 
 # index stream to code stream
-def data_to_codes(indexStream: IndexStream, num_color_bits: int) -> CodeStream:
+def data_to_codes(indexStream, num_color_bits: int) -> list[int]:
     clear_code = 2**num_color_bits
     end_info_code = clear_code + 1
 
-    encoded_data: CodeStream = []
-    for index in indexStream:
-        encoded_data += [clear_code, index]
+    # Has Sequences of colors, and special control codes
+    initial_code_table = [(i) for i in range(0, 2**num_color_bits)]
+    initial_code_table += [(clear_code), (end_info_code)]
 
-    encoded_data += [end_info_code]
-    return encoded_data
+    code_table = initial_code_table.copy()
+
+    # Codes are indices into code_table
+    code_stream = []
+    code_stream += clear_code
+
+    # Keep track of the range of indices until we know what their code is
+    index_buffer = []
+    index_buffer += indexStream[0]
+
+    for i, k in enumerate(indexStream):
+        if i == 0:
+            index_buffer += k
+            ...
+        else:
+            code_stream += [clear_code, k]
+
+    code_stream += [end_info_code]
+    return code_stream
 
 
 def image_data(data, num_color_bits):
