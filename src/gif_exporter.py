@@ -100,7 +100,7 @@ def print_codes(codes):
 
 
 # index stream to code stream
-def data_to_codes(indexStream, num_color_bits: int) -> list[int]:
+def data_to_codes(indexStream, num_color_bits: int) -> tuple[list[int], list[int]]:
     clear_code = 2**num_color_bits
     end_info_code = clear_code + 1
 
@@ -115,7 +115,12 @@ def data_to_codes(indexStream, num_color_bits: int) -> list[int]:
     # Codes are indices into code_table
     # this is our output data
     code_stream = []
+    code_table_len_stream = []
+
+    # Code_table_len_stream will track the size of the code table
+    # when each code is added
     code_stream += [clear_code]
+    code_table_len_stream += [len(code_table)]
 
     # Keep track of the range of indices until we know what their code is
     index_buffer = []
@@ -130,29 +135,36 @@ def data_to_codes(indexStream, num_color_bits: int) -> list[int]:
                 code_table.append(tuple(index_buffer + [k]))
                 code = code_table.index(tuple(index_buffer))
                 code_stream += [code]
+                code_table_len_stream += [len(code_table)]
                 index_buffer = [k]
 
     # handle what remains in index buffer
     code = code_table.index(tuple(index_buffer))
     code_stream += [code]
+    code_table_len_stream += [len(code_table)]
     code_stream += [end_info_code]
+    code_table_len_stream += [len(code_table)]
 
     print(f"{code_table=}")
     for i, code in enumerate(code_table):
         print(f"{i} {code}")
     print(f"{code_stream=}")
 
-    return code_stream
+    return code_stream, code_table_len_stream
 
 
 def image_data(data, num_color_bits):
     lzw_min_code_size = int.to_bytes(num_color_bits, 1, "little")
 
-    codes = data_to_codes(data, num_color_bits)
+    codes, code_table_sizes = data_to_codes(data, num_color_bits)
 
     encoded_data = ""
-    for code in codes:
-        encoded_data = f"{code:0{num_color_bits+1}b}" + encoded_data
+    for code, code_table_size in zip(codes, code_table_sizes):
+        num_code_bits = m.ceil(m.log2(code_table_size))
+        # TODO NEXT check that the encoded codes make sense/match sample1.gif
+        # diff <(xxd -b -c 1 by_hand.gif) <(xxd -b -c 1 sample_1.gif) -y
+        print()
+        encoded_data = f"{code:0{num_code_bits}b}" + encoded_data
 
     num_bits = len(encoded_data)
     num_bits_to_add = 8 - (num_bits % 8)
@@ -180,9 +192,9 @@ def image_data(data, num_color_bits):
             sub_block_size_int = len(sub_block_data) // 8
 
         sub_block_size = int.to_bytes(sub_block_size_int, 1, "little")
-        sub_block_bytes = int(sub_block_data, 2).to_bytes(sub_block_size_int, "little")
+        sub_block_data_as_bytes = int(sub_block_data, 2).to_bytes(sub_block_size_int, "little")
 
-        output_bytes += sub_block_size + sub_block_bytes
+        output_bytes += sub_block_size + sub_block_data_as_bytes
 
     block_terminator = b"\x00"  # always 0
     output_bytes += block_terminator
