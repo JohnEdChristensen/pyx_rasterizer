@@ -105,27 +105,43 @@ def data_to_codes(indexStream, num_color_bits: int) -> list[int]:
     end_info_code = clear_code + 1
 
     # Has Sequences of colors, and special control codes
-    initial_code_table = [(i) for i in range(0, 2**num_color_bits)]
-    initial_code_table += [(clear_code), (end_info_code)]
+    # Code table is a list of tuples
+    initial_code_table = [(i,) for i in range(0, 2**num_color_bits)]
+    initial_code_table += [(clear_code,), (end_info_code,)]
 
+    # Dynamically create the code table, decoding will be able to build the same table
     code_table = initial_code_table.copy()
 
     # Codes are indices into code_table
+    # this is our output data
     code_stream = []
-    code_stream += clear_code
+    code_stream += [clear_code]
 
     # Keep track of the range of indices until we know what their code is
     index_buffer = []
-    index_buffer += indexStream[0]
 
     for i, k in enumerate(indexStream):
         if i == 0:
-            index_buffer += k
-            ...
+            index_buffer += [k]
         else:
-            code_stream += [clear_code, k]
+            if tuple(index_buffer + [k]) in code_table:
+                index_buffer += [k]
+            else:
+                code_table.append(tuple(index_buffer + [k]))
+                code = code_table.index(tuple(index_buffer))
+                code_stream += [code]
+                index_buffer = [k]
 
+    # handle what remains in index buffer
+    code = code_table.index(tuple(index_buffer))
+    code_stream += [code]
     code_stream += [end_info_code]
+
+    print(f"{code_table=}")
+    for i, code in enumerate(code_table):
+        print(f"{i} {code}")
+    print(f"{code_stream=}")
+
     return code_stream
 
 
@@ -195,10 +211,14 @@ def export_image(file_name, data, width, height, colors):
 
 
 if __name__ == "__main__":
-    data = ([1] * 5 + [4] * 5) * 3
-    data += ([1] * 3 + [0] * 4 + [4] * 3) * 2
-    data += ([2] * 3 + [0] * 4 + [3] * 3) * 2
-    data += ([2] * 5 + [3] * 5) * 3
+    # data = ([1] * 5 + [4] * 5) * 3
+    # data += ([1] * 3 + [0] * 4 + [4] * 3) * 2
+    # data += ([2] * 3 + [0] * 4 + [3] * 3) * 2
+    # data += ([2] * 5 + [3] * 5) * 3
+    data = ([1] * 5 + [2] * 5) * 3
+    data += ([1] * 3 + [0] * 4 + [2] * 3) * 2
+    data += ([2] * 3 + [0] * 4 + [1] * 3) * 2
+    data += ([2] * 5 + [1] * 5) * 3
     print_img_data(data)
 
     white = (255, 255, 255)
@@ -207,6 +227,6 @@ if __name__ == "__main__":
     green = (0, 255, 0)
     yellow = (255, 255, 0)
     black = (0, 0, 0)
-    colors = [white, red, blue, green, yellow]
+    colors = [white, red, blue, black]
 
-    export_image("by_hand.gif", data, 20, 5, colors)
+    export_image("by_hand.gif", data, 10, 10, colors)
