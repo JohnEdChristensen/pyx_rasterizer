@@ -121,10 +121,10 @@ def data_to_codes(indexStream, num_color_bits: int) -> tuple[list[int], list[int
     # when each code is added
     code_stream += [clear_code]
     code_table_len_stream += [len(code_table)]
-    code_table_len_stream += [len(code_table)]
 
     # Keep track of the range of indices until we know what their code is
     index_buffer = []
+    old_table_len = len(code_table)
 
     for i, k in enumerate(indexStream):
         if i == 0:
@@ -133,7 +133,9 @@ def data_to_codes(indexStream, num_color_bits: int) -> tuple[list[int], list[int
             if tuple(index_buffer + [k]) in code_table:
                 index_buffer += [k]
             else:
-                code_table_len_stream += [len(code_table)]
+                code_table_len_stream += [old_table_len]
+                old_table_len = len(code_table)
+
                 code_table.append(tuple(index_buffer + [k]))
                 code = code_table.index(tuple(index_buffer))
                 code_stream += [code]
