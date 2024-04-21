@@ -121,6 +121,7 @@ def data_to_codes(indexStream, num_color_bits: int) -> tuple[list[int], list[int
     # when each code is added
     code_stream += [clear_code]
     code_table_len_stream += [len(code_table)]
+    code_table_len_stream += [len(code_table)]
 
     # Keep track of the range of indices until we know what their code is
     index_buffer = []
@@ -132,10 +133,10 @@ def data_to_codes(indexStream, num_color_bits: int) -> tuple[list[int], list[int
             if tuple(index_buffer + [k]) in code_table:
                 index_buffer += [k]
             else:
+                code_table_len_stream += [len(code_table)]
                 code_table.append(tuple(index_buffer + [k]))
                 code = code_table.index(tuple(index_buffer))
                 code_stream += [code]
-                code_table_len_stream += [len(code_table)]
                 index_buffer = [k]
 
     # handle what remains in index buffer
@@ -160,12 +161,12 @@ def image_data(data, num_color_bits):
 
     encoded_data = ""
     for code, code_table_size in zip(codes, code_table_sizes):
-        num_code_bits = m.ceil(m.log2(code_table_size))
+        num_code_bits = m.floor(m.log2(code_table_size) + 1)
         # TODO NEXT check that the encoded codes make sense/match sample1.gif
         # diff <(xxd -b -c 1 by_hand.gif) <(xxd -b -c 1 sample_1.gif) -y
-        print()
+        print(code, code_table_size, num_code_bits)
         encoded_data = f"{code:0{num_code_bits}b}" + encoded_data
-
+    print(encoded_data)
     num_bits = len(encoded_data)
     num_bits_to_add = 8 - (num_bits % 8)
 
