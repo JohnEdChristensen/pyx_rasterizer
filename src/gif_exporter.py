@@ -72,12 +72,13 @@ def application_control_extension():
     )
 
 
-def graphic_control_extension():
+def graphic_control_extension(delay):
+    """delay in hundreths of seconds"""
     extension_introducer = b"\x21"  # always 0x21
     graphic_control_label = b"\xf9"  # always 0xF9
     block_size = int.to_bytes(4, 1, "little")
     packed_field = b"\x00"  # many flags in here
-    delay_time = int.to_bytes(0, 2, "little")
+    delay_time = int.to_bytes(delay, 2, "little")
     transparent_color_index = int.to_bytes(0, 1, "little")
     block_terminator = b"\x00"  # always 0
 
@@ -232,22 +233,29 @@ def image_data(data, num_color_bits):
 def comment_extension(): ...
 
 
-def export_image(file_name, data, width, height, colors):
+def export_image(file_name, frame_data, width, height, fps, colors):
+    """frame data is a list of frames of data. a frame is a 1d list of color indicies"""
+    # delay is measured in hundreths of seconds
+    delay_hms = m.ceil((1 / fps) * 0.01)
     num_colors = len(colors)
     num_color_bits = m.ceil(m.log2(num_colors))
     print("num_color_bits:", num_color_bits)
+    file_contents = (
+        header
+        + logical_screen_descriptor(width, height, num_color_bits)  # TODO make this color size a reasonable input
+        + color_table(colors, num_color_bits)
+        + application_control_extension()
+    )
+    for frame in frame_data:
+        file_contents += (
+            graphic_control_extension(delay_hms)
+            + image_descriptor(width, height)
+            + image_data(frame, num_color_bits)  # frmt:skip
+        )
+    file_contents += b"\x3b"
+
     with open(file_name, "wb", buffering=0) as f:
-        f.write(
-            header
-            + logical_screen_descriptor(width,height,num_color_bits)#TODO make this color size a reasonable input
-            + color_table(colors,num_color_bits)
-            + application_control_extension()
-            + graphic_control_extension()
-            + image_descriptor(width,height)
-            + image_data(data,num_color_bits)
-            # + comment_extension()
-            + b"\x3B"
-        )  # fmt: skip
+        f.write( file_contents)  # fmt: skip
 
 
 if __name__ == "__main__":
@@ -255,11 +263,17 @@ if __name__ == "__main__":
     # data += ([1] * 3 + [0] * 4 + [4] * 3) * 2
     # data += ([2] * 3 + [0] * 4 + [3] * 3) * 2
     # data += ([2] * 5 + [3] * 5) * 3
-    data = ([1] * 5 + [2] * 5) * 3
-    data += ([1] * 3 + [0] * 4 + [2] * 3) * 2
-    data += ([2] * 3 + [0] * 4 + [1] * 3) * 2
-    data += ([2] * 5 + [1] * 5) * 3
-    print_img_data(data)
+    data = [[], []]
+    data[0] = ([1] * 5 + [2] * 5) * 3
+    data[0] += ([1] * 3 + [0] * 4 + [2] * 3) * 2
+    data[0] += ([2] * 3 + [0] * 4 + [1] * 3) * 2
+    data[0] += ([2] * 5 + [1] * 5) * 3
+    print_img_data(data[0])
+    data[1] = ([2] * 5 + [1] * 5) * 3
+    data[1] += ([2] * 3 + [0] * 4 + [1] * 3) * 2
+    data[1] += ([1] * 3 + [0] * 4 + [2] * 3) * 2
+    data[1] += ([1] * 5 + [2] * 5) * 3
+    print_img_data(data[1])
 
     white = (255, 255, 255)
     red = (255, 0, 0)
@@ -269,4 +283,4 @@ if __name__ == "__main__":
     black = (0, 0, 0)
     colors = [white, red, blue, black]
 
-    export_image("by_hand.gif", data, 10, 10, colors)
+    export_image("by_hand.gif", data, 10, 10, 100, colors)
