@@ -77,7 +77,13 @@ def graphic_control_extension(delay):
     extension_introducer = b"\x21"  # always 0x21
     graphic_control_label = b"\xf9"  # always 0xF9
     block_size = int.to_bytes(4, 1, "little")
-    packed_field = b"\x00"  # many flags in here
+    packed_field = b"\x01"  # many flags in here, last bit is transparency
+    disposal_method = "010"
+    transparency_flag = "1"
+    user_input_flag = "0"  # rarely used and might not be widely supported
+    packed_field_string = "000" + disposal_method + user_input_flag + transparency_flag
+    packed_field = int(packed_field_string, 2).to_bytes(1, "little")
+
     delay_time = int.to_bytes(delay, 2, "little")
     transparent_color_index = int.to_bytes(0, 1, "little")
     block_terminator = b"\x00"  # always 0
