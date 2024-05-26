@@ -48,6 +48,30 @@ def color_table(colors, table_bit_size):
     return b"".join([iter_to_bytes(color) for color in colors])
 
 
+def application_control_extension():
+    extension_introducer = b"\x21"  # always 0x21
+    application_extension_label = b"\xff"
+    application_data_length = int.to_bytes(11, 1, "little")
+    application_data_name = b"NETSCAPE"  # always 0xF9
+    application_data_version = b"2.0"  # always 0xF9
+    length_of_sublock = int.to_bytes(3, 1, "little")
+    one = int.to_bytes(1, 1, "little")
+    num_loop = int.to_bytes(0, 2, "little")
+    block_terminator = b"\x00"  # always 0
+
+    return (
+        extension_introducer
+        + application_extension_label
+        + application_data_length
+        + application_data_name
+        + application_data_version
+        + length_of_sublock
+        + one
+        + num_loop
+        + block_terminator
+    )
+
+
 def graphic_control_extension():
     extension_introducer = b"\x21"  # always 0x21
     graphic_control_label = b"\xf9"  # always 0xF9
@@ -217,6 +241,7 @@ def export_image(file_name, data, width, height, colors):
             header
             + logical_screen_descriptor(width,height,num_color_bits)#TODO make this color size a reasonable input
             + color_table(colors,num_color_bits)
+            + application_control_extension()
             + graphic_control_extension()
             + image_descriptor(width,height)
             + image_data(data,num_color_bits)
