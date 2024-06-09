@@ -194,11 +194,6 @@ def data_to_codes(indexStream, num_color_bits: int) -> tuple[list[int], list[int
     code_stream += [end_info_code]
     code_table_len_stream += [len(code_table)]
 
-    print(f"{code_table=}")
-    for i, code in enumerate(code_table):
-        print(f"{i} {code}")
-    print(f"{code_stream=}")
-
     return code_stream, code_table_len_stream
 
 
@@ -210,11 +205,7 @@ def image_data(data, num_color_bits):
     encoded_data = ""
     for code, code_table_size in zip(codes, code_table_sizes):
         num_code_bits = m.floor(m.log2(code_table_size) + 1)
-        # TODO NEXT check that the encoded codes make sense/match sample1.gif
-        # diff <(xxd -b -c 1 by_hand.gif) <(xxd -b -c 1 sample_1.gif) -y
-        print(code, code_table_size, num_code_bits)
         encoded_data = f"{code:0{num_code_bits}b}" + encoded_data
-    print(encoded_data)
     num_bits = len(encoded_data)
     num_bits_to_add = 8 - (num_bits % 8)
 
@@ -262,7 +253,6 @@ def export_image(file_name, frame_data, width, height, fps, colors):
     delay_hms = m.ceil((1 / fps) * 0.01)
     num_colors = len(colors)
     num_color_bits = m.ceil(m.log2(num_colors))
-    print("num_color_bits:", num_color_bits)
     file_contents = (
         header
         + logical_screen_descriptor(
