@@ -1,6 +1,7 @@
 # following https://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html
 import math as m
 from typing import List
+import numpy as np
 
 from itertools import islice
 
@@ -86,8 +87,9 @@ def graphic_control_extension(delay):
     graphic_control_label = b"\xf9"  # always 0xF9
     block_size = int.to_bytes(4, 1, "little")
     # packed_field = b"\x01"  # many flags in here, last bit is transparency
-    disposal_method = "010"  # clear entire screen
-    transparency_flag = "1"
+    # disposal_method = "010"  # clear entire screen
+    disposal_method = "001"  # leaves previous frame drawn
+    transparency_flag = "0"
     user_input_flag = "0"  # rarely used and might not be widely supported
     packed_field_string = "000" + disposal_method + user_input_flag + transparency_flag
     packed_field = int(packed_field_string, 2).to_bytes(1, "little")
@@ -107,10 +109,10 @@ def graphic_control_extension(delay):
     )
 
 
-def image_descriptor(width, height):
+def image_descriptor(x, y, width, height):
     image_seperator = b"\x2c"  # always 0x2C
-    image_left = int.to_bytes(0, 2, "little")
-    image_top = int.to_bytes(0, 2, "little")
+    image_left = int.to_bytes(x, 2, "little")
+    image_top = int.to_bytes(y, 2, "little")
     image_width = int.to_bytes(width, 2, "little")
     image_height = int.to_bytes(height, 2, "little")
     # If adding local color table, add local_color_table implementation
@@ -245,6 +247,13 @@ def image_data(data, num_color_bits):
 
 
 def comment_extension(): ...
+def find_frame_diff(prev_frame, next_frame):
+    x = 80
+    y = 60
+    width = 20
+    height = 40
+
+    return (x, y, width, height)
 
 
 def export_image(file_name, frame_data, width, height, fps, colors):
@@ -261,11 +270,39 @@ def export_image(file_name, frame_data, width, height, fps, colors):
         + color_table(colors, num_color_bits)
         + application_control_extension()
     )
-    for frame in frame_data:
+
+    for i, frame in enumerate(frame_data):
+        if i != 0:
+            prev_frame = frame_data[i - 1]
+            (x, y, diff_width, diff_height) = find_frame_diff(prev_frame, frame)
+            npFrame = np.reshape(frame, (height, width))
+
+            npDiff_frame = npFrame[y : y + diff_height, x : x + diff_width]
+
+            diff_frame = npDiff_frame.ravel()
+        else:
+            x = 0
+            y = 0
+            diff_width = width
+            diff_height = height
+
+            print("unaltered frame")
+            print(frame)
+            npFrame = np.reshape(frame, (height, width))
+            print("np unaltered frame")
+            print(npFrame)
+
+            npDiff_frame = npFrame[y : y + diff_height, x : x + diff_width]
+            print("np diff frame")
+            print(npDiff_frame)
+
+            diff_frame = npDiff_frame.ravel()
+            print("diff frame")
+            print(diff_frame)
         file_contents += (
             graphic_control_extension(delay_hms)
-            + image_descriptor(width, height)
-            + image_data(frame, num_color_bits)  # frmt:skip
+            + image_descriptor(x, y, diff_width, diff_height)
+            + image_data(diff_frame, num_color_bits)  # frmt:skip
         )
     file_contents += b"\x3b"
 
@@ -279,16 +316,19 @@ if __name__ == "__main__":
     # data += ([2] * 3 + [0] * 4 + [3] * 3) * 2
     # data += ([2] * 5 + [3] * 5) * 3
     data = [[], []]
-    data[0] = ([1] * 5 + [2] * 5) * 3
+    data[0] = ([1] * 5 + [3] * 5) * 3
     data[0] += ([1] * 3 + [0] * 4 + [2] * 3) * 2
     data[0] += ([2] * 3 + [0] * 4 + [1] * 3) * 2
     data[0] += ([2] * 5 + [1] * 5) * 3
+    data[0] += [2] * 5 + [1] * 5
     print_img_data(data[0])
-    data[1] = ([2] * 5 + [1] * 5) * 3
+    data[1] = ([2] * 5 + [3] * 5) * 3
     data[1] += ([2] * 3 + [0] * 4 + [1] * 3) * 2
     data[1] += ([1] * 3 + [0] * 4 + [2] * 3) * 2
     data[1] += ([1] * 5 + [2] * 5) * 3
+    data[1] += [1] * 5 + [2] * 5
     print_img_data(data[1])
+    # print(len(data[1]))
 
     white = (255, 255, 255)
     red = (255, 0, 0)
@@ -296,6 +336,6 @@ if __name__ == "__main__":
     green = (0, 255, 0)
     yellow = (255, 255, 0)
     black = (0, 0, 0)
-    colors = [white, red, blue, black]
+    colors = [white, red, blue, black, green]
 
-    export_image("by_hand.gif", data, 10, 10, 100, colors)
+    export_image("by_hand.gif", data, 10, 11, 100, colors)
