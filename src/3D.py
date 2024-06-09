@@ -160,7 +160,9 @@ class TriType(Enum):
     VERTICAL_LINE = 4
 
 
-def tris_from_verts(vertices: list[Vec4], faces: list[list[int]]) -> list[list[tuple[float, float, float]]]:
+def tris_from_verts(
+    vertices: list[Vec4], faces: list[list[int]]
+) -> list[list[tuple[float, float, float]]]:
     tris = []
     for face in faces:
         tris.append(
@@ -173,7 +175,9 @@ def tris_from_verts(vertices: list[Vec4], faces: list[list[int]]) -> list[list[t
     return tris
 
 
-def mat_times_vec(mat: list[list[float]], vec: tuple[float, float, float, float]) -> list[float]:
+def mat_times_vec(
+    mat: list[list[float]], vec: tuple[float, float, float, float]
+) -> list[float]:
     xp = dot(vec, mat[0])
     yp = dot(vec, mat[1])
     zp = dot(vec, mat[2])
@@ -330,7 +334,9 @@ def draw_tri(tri: list[tuple[float, float, float]], color: int):
 
         opposite_line = Line(pBottom, pTop)
         pNew = Point(
-            opposite_line.x(pMiddle.y), pMiddle.y, ((pTop.z + pMiddle.z + pBottom.z) / 3)
+            opposite_line.x(pMiddle.y),
+            pMiddle.y,
+            ((pTop.z + pMiddle.z + pBottom.z) / 3),
         )  # TODO use a weighted average (by distance), this will proabably break in some cases
         topTri = [pMiddle.as_tuple(), pNew.as_tuple(), pTop.as_tuple()]
         botTri = [pMiddle.as_tuple(), pNew.as_tuple(), pBottom.as_tuple()]
@@ -798,7 +804,9 @@ class App:
                 self.gif_data.append(pixel_buffer.contents)
                 if len(self.gif_data) >= 100:  # FPS * 5:  # 5 second long gif
                     self.recording_gif = False
-                    gif_exporter.export_image("pyx_raster.gif", self.gif_data, WIDTH, HEIGHT, FPS, colors_rgb)
+                    gif_exporter.export_image(
+                        "pyx_raster.gif", self.gif_data, WIDTH, HEIGHT, FPS, colors_rgb
+                    )
 
             # draw what is currently in the buffer to the screen
             pixel_buffer.draw()

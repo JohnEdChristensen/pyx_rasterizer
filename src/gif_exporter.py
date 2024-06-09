@@ -23,7 +23,9 @@ def logical_screen_descriptor(canvas_width, canvas_height, global_color_table_si
     color_resolution = "001"
     sort_flag = "0"
     size_of_global_color_table = f"{global_color_table_size-1:03b}"
-    byte_4 = global_color_table + color_resolution + sort_flag + size_of_global_color_table
+    byte_4 = (
+        global_color_table + color_resolution + sort_flag + size_of_global_color_table
+    )
 
     hex_4 = int(byte_4, 2).to_bytes(1, "little")
 
@@ -32,7 +34,13 @@ def logical_screen_descriptor(canvas_width, canvas_height, global_color_table_si
 
     # byte 6
     pixel_aspect_ratio = b"\x00"  # most modern gif viewers ignore this :(
-    return canvas_width + canvas_height + hex_4 + background_color_index + pixel_aspect_ratio
+    return (
+        canvas_width
+        + canvas_height
+        + hex_4
+        + background_color_index
+        + pixel_aspect_ratio
+    )
 
 
 def iter_to_bytes(iter: Iterable) -> bytes:
@@ -77,8 +85,8 @@ def graphic_control_extension(delay):
     extension_introducer = b"\x21"  # always 0x21
     graphic_control_label = b"\xf9"  # always 0xF9
     block_size = int.to_bytes(4, 1, "little")
-    packed_field = b"\x01"  # many flags in here, last bit is transparency
-    disposal_method = "010"
+    # packed_field = b"\x01"  # many flags in here, last bit is transparency
+    disposal_method = "010"  # clear entire screen
     transparency_flag = "1"
     user_input_flag = "0"  # rarely used and might not be widely supported
     packed_field_string = "000" + disposal_method + user_input_flag + transparency_flag
@@ -108,7 +116,14 @@ def image_descriptor(width, height):
     # If adding local color table, add local_color_table implementation
     packed_field = b"\x00"  # lots of flags, interlace, sort, local color table
 
-    return image_seperator + image_left + image_top + image_width + image_height + packed_field
+    return (
+        image_seperator
+        + image_left
+        + image_top
+        + image_width
+        + image_height
+        + packed_field
+    )
 
 
 def local_color_table(): ...
@@ -226,7 +241,9 @@ def image_data(data, num_color_bits):
             sub_block_size_int = len(sub_block_data) // 8
 
         sub_block_size = int.to_bytes(sub_block_size_int, 1, "little")
-        sub_block_data_as_bytes = int(sub_block_data, 2).to_bytes(sub_block_size_int, "little")
+        sub_block_data_as_bytes = int(sub_block_data, 2).to_bytes(
+            sub_block_size_int, "little"
+        )
 
         output_bytes += sub_block_size + sub_block_data_as_bytes
 
@@ -248,7 +265,9 @@ def export_image(file_name, frame_data, width, height, fps, colors):
     print("num_color_bits:", num_color_bits)
     file_contents = (
         header
-        + logical_screen_descriptor(width, height, num_color_bits)  # TODO make this color size a reasonable input
+        + logical_screen_descriptor(
+            width, height, num_color_bits
+        )  # TODO make this color size a reasonable input
         + color_table(colors, num_color_bits)
         + application_control_extension()
     )
