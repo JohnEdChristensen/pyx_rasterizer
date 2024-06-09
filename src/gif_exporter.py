@@ -247,13 +247,33 @@ def image_data(data, num_color_bits):
 
 
 def comment_extension(): ...
-def find_frame_diff(prev_frame, next_frame):
-    x = 80
-    y = 60
-    width = 20
-    height = 40
+
+
+def findBoundingBox(data):
+    (column_nz_indices, row_nz_indices) = np.nonzero(data)
+
+    left = int(min(row_nz_indices))
+    right = int(max(row_nz_indices))
+    top = int(min(column_nz_indices))
+    bottom = int(max(column_nz_indices))
+
+    x = left
+    y = top
+    width = right - left + 1
+    height = bottom - top + 1
 
     return (x, y, width, height)
+
+
+def find_frame_diff(prev_frame, next_frame):
+    # x = 80
+    # y = 60
+    # width = 20
+    # height = 40
+
+    mask = prev_frame != next_frame
+
+    return findBoundingBox(mask)
 
 
 def export_image(file_name, frame_data, width, height, fps, colors):
@@ -273,11 +293,12 @@ def export_image(file_name, frame_data, width, height, fps, colors):
 
     for i, frame in enumerate(frame_data):
         if i != 0:
-            prev_frame = frame_data[i - 1]
-            (x, y, diff_width, diff_height) = find_frame_diff(prev_frame, frame)
-            npFrame = np.reshape(frame, (height, width))
+            np_frame = np.reshape(frame, (height, width))
+            np_prev_frame = np.reshape(frame_data[i - 1], (height, width))
 
-            npDiff_frame = npFrame[y : y + diff_height, x : x + diff_width]
+            (x, y, diff_width, diff_height) = find_frame_diff(np_prev_frame, np_frame)
+
+            npDiff_frame = np_frame[y : y + diff_height, x : x + diff_width]
 
             diff_frame = npDiff_frame.ravel()
         else:
@@ -285,20 +306,21 @@ def export_image(file_name, frame_data, width, height, fps, colors):
             y = 0
             diff_width = width
             diff_height = height
-
-            print("unaltered frame")
-            print(frame)
-            npFrame = np.reshape(frame, (height, width))
-            print("np unaltered frame")
-            print(npFrame)
-
-            npDiff_frame = npFrame[y : y + diff_height, x : x + diff_width]
-            print("np diff frame")
-            print(npDiff_frame)
-
-            diff_frame = npDiff_frame.ravel()
-            print("diff frame")
-            print(diff_frame)
+            diff_frame = frame
+            #
+            # print("unaltered frame")
+            # print(frame)
+            # np_frame = np.reshape(frame, (height, width))
+            # print("np unaltered frame")
+            # print(np_frame)
+            #
+            # npDiff_frame = np_frame[y : y + diff_height, x : x + diff_width]
+            # print("np diff frame")
+            # print(npDiff_frame)
+            #
+            # diff_frame = npDiff_frame.ravel()
+            # print("diff frame")
+            # print(diff_frame)
         file_contents += (
             graphic_control_extension(delay_hms)
             + image_descriptor(x, y, diff_width, diff_height)
@@ -322,11 +344,11 @@ if __name__ == "__main__":
     data[0] += ([2] * 5 + [1] * 5) * 3
     data[0] += [2] * 5 + [1] * 5
     print_img_data(data[0])
-    data[1] = ([2] * 5 + [3] * 5) * 3
-    data[1] += ([2] * 3 + [0] * 4 + [1] * 3) * 2
+    data[1] = ([4] * 5 + [3] * 5) * 3
     data[1] += ([1] * 3 + [0] * 4 + [2] * 3) * 2
-    data[1] += ([1] * 5 + [2] * 5) * 3
-    data[1] += [1] * 5 + [2] * 5
+    data[1] += ([2] * 3 + [0] * 4 + [1] * 3) * 2
+    data[1] += ([2] * 5 + [1] * 5) * 3
+    data[1] += [2] * 5 + [1] * 5
     print_img_data(data[1])
     # print(len(data[1]))
 
