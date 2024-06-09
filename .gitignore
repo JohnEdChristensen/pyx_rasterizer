@@ -1,1 +1,3 @@
 **/__pycache__
+*.gif
+!examples/*.gif
