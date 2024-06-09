@@ -8,6 +8,8 @@ import traceback
 import copy
 import numpy as np
 import numpy.typing as npt
+from datetime import datetime
+import time
 
 import obj_parser as obj  # pyright: ignore
 import gif_exporter as gif_exporter
@@ -804,8 +806,14 @@ class App:
                 self.gif_data.append(pixel_buffer.contents)
                 if len(self.gif_data) >= 100:  # FPS * 5:  # 5 second long gif
                     self.recording_gif = False
+                    time_stamp = datetime.today().isoformat()
                     gif_exporter.export_image(
-                        "pyx_raster.gif", self.gif_data, WIDTH, HEIGHT, FPS, colors_rgb
+                        "pyx_" + time_stamp + ".gif",
+                        self.gif_data,
+                        WIDTH,
+                        HEIGHT,
+                        FPS,
+                        colors_rgb,
                     )
 
             # draw what is currently in the buffer to the screen
