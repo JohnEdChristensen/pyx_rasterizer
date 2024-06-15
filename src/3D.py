@@ -9,7 +9,6 @@ import copy
 import numpy as np
 import numpy.typing as npt
 from datetime import datetime
-import time
 
 import obj_parser as obj  # pyright: ignore
 import gif_exporter as gif_exporter
@@ -814,6 +813,7 @@ class App:
                         HEIGHT,
                         FPS,
                         colors_rgb,
+                        True,
                     )
 
             # draw what is currently in the buffer to the screen

@@ -1,9 +1,6 @@
 # following https://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html
 import math as m
-from typing import List
 import numpy as np
-
-from itertools import islice
 
 # header = b'\x47\x49\x46\x38\x39\x61'
 #            G,     I,   F,    8,     9,   a, # 89a is the version alternatives are 87a
@@ -81,15 +78,16 @@ def application_control_extension():
     )
 
 
-def graphic_control_extension(delay):
+def graphic_control_extension(delay, useTransparency):
     """delay in hundreths of seconds"""
     extension_introducer = b"\x21"  # always 0x21
     graphic_control_label = b"\xf9"  # always 0xF9
     block_size = int.to_bytes(4, 1, "little")
     # packed_field = b"\x01"  # many flags in here, last bit is transparency
-    # disposal_method = "010"  # clear entire screen
-    disposal_method = "001"  # leaves previous frame drawn
-    transparency_flag = "0"
+    CLEAR_SCREEN = "010"
+    KEEP_SCREEN = "001"
+    disposal_method = CLEAR_SCREEN if useTransparency else KEEP_SCREEN
+    transparency_flag = "1" if useTransparency else "0"
     user_input_flag = "0"  # rarely used and might not be widely supported
     packed_field_string = "000" + disposal_method + user_input_flag + transparency_flag
     packed_field = int(packed_field_string, 2).to_bytes(1, "little")
@@ -276,7 +274,9 @@ def find_frame_diff(prev_frame, next_frame):
     return findBoundingBox(mask)
 
 
-def export_image(file_name, frame_data, width, height, fps, colors):
+def export_image(
+    file_name, frame_data, width, height, fps, colors, useTransparency=False
+):
     """frame data is a list of frames of data. a frame is a 1d list of color indicies"""
     # delay is measured in hundreths of seconds
     delay_hms = m.ceil((1 / fps) * 0.01)
@@ -292,7 +292,8 @@ def export_image(file_name, frame_data, width, height, fps, colors):
     )
 
     for i, frame in enumerate(frame_data):
-        if i != 0:
+        drawDiffBox = i != 0 and not useTransparency
+        if drawDiffBox:
             np_frame = np.reshape(frame, (height, width))
             np_prev_frame = np.reshape(frame_data[i - 1], (height, width))
 
@@ -307,22 +308,8 @@ def export_image(file_name, frame_data, width, height, fps, colors):
             diff_width = width
             diff_height = height
             diff_frame = frame
-            #
-            # print("unaltered frame")
-            # print(frame)
-            # np_frame = np.reshape(frame, (height, width))
-            # print("np unaltered frame")
-            # print(np_frame)
-            #
-            # npDiff_frame = np_frame[y : y + diff_height, x : x + diff_width]
-            # print("np diff frame")
-            # print(npDiff_frame)
-            #
-            # diff_frame = npDiff_frame.ravel()
-            # print("diff frame")
-            # print(diff_frame)
         file_contents += (
-            graphic_control_extension(delay_hms)
+            graphic_control_extension(delay_hms, useTransparency)
             + image_descriptor(x, y, diff_width, diff_height)
             + image_data(diff_frame, num_color_bits)  # frmt:skip
         )
